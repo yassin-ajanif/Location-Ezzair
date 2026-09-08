@@ -85,8 +85,10 @@
               </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <!-- One UniformGrid per week so an expanded day can grow that row only. -->
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <!-- Stack weeks so an expanded day can grow; scroll when content exceeds the panel. -->
+            <ScrollViewer Grid.Row="1"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
               <ItemsControl ItemsSource="{Binding Weeks}">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate>
@@ -103,7 +105,7 @@
                       </ItemsControl.ItemsPanel>
                       <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="vm:AvailabilityDayCell">
-                          <Border Margin="3" Padding="6,5" CornerRadius="8" MinHeight="52"
+                          <Border Margin="3" Padding="6,5" CornerRadius="8" MinHeight="72"
                                   VerticalAlignment="Stretch"
                                   Background="{Binding Background}"
                                   BorderBrush="{Binding BorderBrush}"
