@@ -169,7 +169,7 @@ public class PerformanceTestService
         for (var i = 0; i < DocumentCount; i += batch)
         {
             var sb = new System.Text.StringBuilder();
-            sb.Append("INSERT INTO BonsLivraison (Id,CreatedAt,UpdatedAt,Numero,ClientId,DevisId,BonCommandeClientId,ReservationId,FactureId,Date,Note) VALUES ");
+            sb.Append("INSERT INTO BonsLivraison (Id,CreatedAt,UpdatedAt,Numero,ClientId,DevisId,BonCommandeClientId,BonSortieId,FactureId,Date,Note) VALUES ");
             var end = Math.Min(i + batch, DocumentCount);
             for (var j = i; j < end; j++)
             {

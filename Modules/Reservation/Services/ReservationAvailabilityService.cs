@@ -45,12 +45,12 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
             .Select(p => new { p.Id, p.Reference, p.Designation, p.StockActuel })
             .ToDictionaryAsync(p => p.Id, cancellationToken);
 
-        var allOpenLines = await db.ReservationProduitLignes.AsNoTracking()
+        var allOpenLines = await db.BonSortieProduitLignes.AsNoTracking()
             .Where(l => l.ProduitId != null && produitIds.Contains(l.ProduitId.Value))
             .Where(l => l.Quantite > l.QuantiteRetournee)
             .Select(l => new
             {
-                ReservationId = l.ReservationId,
+                BonSortieId = l.BonSortieId,
                 ProduitId = l.ProduitId!.Value,
                 Encore = l.Quantite - l.QuantiteRetournee
             })
@@ -64,7 +64,7 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
             ownedByProduit[pid] = stock + outQty;
         }
 
-        var overlapping = await db.Reservations.AsNoTracking()
+        var overlapping = await db.BonsSortie.AsNoTracking()
             .Where(r => excludeReservationId == null || r.Id != excludeReservationId.Value)
             .Select(r => new
             {
@@ -90,7 +90,7 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
 
         var overlapById = overlapping.ToDictionary(r => r.Id);
         var otherOpenOnOverlap = allOpenLines
-            .Where(l => overlapIds.Contains(l.ReservationId))
+            .Where(l => overlapIds.Contains(l.BonSortieId))
             .ToList();
 
         var conflicts = new List<ReservationAvailabilityConflict>();
@@ -105,7 +105,7 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
             produits.TryGetValue(req.ProduitId, out var prod);
             var sources = otherOpenOnOverlap
                 .Where(l => l.ProduitId == req.ProduitId)
-                .GroupBy(l => l.ReservationId)
+                .GroupBy(l => l.BonSortieId)
                 .Select(g =>
                 {
                     var res = overlapById[g.Key];
@@ -162,8 +162,8 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
             return null;
 
         var openLines = await (
-            from l in db.ReservationProduitLignes.AsNoTracking()
-            join r in db.Reservations.AsNoTracking() on l.ReservationId equals r.Id
+            from l in db.BonSortieProduitLignes.AsNoTracking()
+            join r in db.BonsSortie.AsNoTracking() on l.BonSortieId equals r.Id
             where l.ProduitId == produitId && l.Quantite > l.QuantiteRetournee
             select new
             {

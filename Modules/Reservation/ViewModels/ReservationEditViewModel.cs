@@ -293,7 +293,7 @@ public partial class ReservationEditViewModel : BaseViewModel
     [ObservableProperty] private DateTime _dateDebut = DateTime.Today;
     [ObservableProperty] private DateTime _dateFinPrevue = DateTime.Today.AddDays(1);
     [ObservableProperty] private DateTime? _dateRetourEffective;
-    [ObservableProperty] private StatutReservation _statut = StatutReservation.EnCours;
+    [ObservableProperty] private StatutBonSortie _statut = StatutBonSortie.EnCours;
     [ObservableProperty] private string _statutLabel = string.Empty;
     [ObservableProperty] private IBrush _statutChipBackground = Brushes.Transparent;
     [ObservableProperty] private IBrush _statutChipForeground = Brushes.Black;
@@ -315,7 +315,7 @@ public partial class ReservationEditViewModel : BaseViewModel
 
     partial void OnReservationIdChanged(int? value) => RemoveReservationCommand.NotifyCanExecuteChanged();
 
-    partial void OnStatutChanged(StatutReservation value) => NotifyStatutChip();
+    partial void OnStatutChanged(StatutBonSortie value) => NotifyStatutChip();
 
     partial void OnBlLabelChanged(string value) => OnPropertyChanged(nameof(HasBlLabel));
 
@@ -365,8 +365,8 @@ public partial class ReservationEditViewModel : BaseViewModel
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
             await using var trx = await db.Database.BeginTransactionAsync(cancellationToken);
             await _workflow.ClearStockAsync(db, id, Numero, _session.UserId, cancellationToken);
-            var entity = await db.Reservations.Include(b => b.ProduitLignes).Include(b => b.ServiceLignes).FirstAsync(b => b.Id == id, cancellationToken);
-            db.Reservations.Remove(entity);
+            var entity = await db.BonsSortie.Include(b => b.ProduitLignes).Include(b => b.ServiceLignes).FirstAsync(b => b.Id == id, cancellationToken);
+            db.BonsSortie.Remove(entity);
             await db.SaveChangesAsync(cancellationToken);
             await trx.CommitAsync(cancellationToken);
             await _dialog.ShowInfoAsync(_locale.T("Loc_Title"), _locale.T("Loc_Deleted"), cancellationToken);
@@ -516,9 +516,9 @@ public partial class ReservationEditViewModel : BaseViewModel
         else
             NotifyStatutChip();
 
-        if (next == StatutReservation.Retournee && DateRetourEffective == null)
+        if (next == StatutBonSortie.Retournee && DateRetourEffective == null)
             DateRetourEffective = DateTime.Today;
-        else if (next != StatutReservation.Retournee)
+        else if (next != StatutBonSortie.Retournee)
             DateRetourEffective = null;
     }
 
@@ -566,7 +566,7 @@ public partial class ReservationEditViewModel : BaseViewModel
             DateDebut = DateTime.Today;
             DateFinPrevue = DateTime.Today.AddDays(1);
             DateRetourEffective = null;
-            Statut = StatutReservation.EnCours;
+            Statut = StatutBonSortie.EnCours;
             Caution = 0;
             Note = string.Empty;
             ClearBlLinkUi();
@@ -576,7 +576,7 @@ public partial class ReservationEditViewModel : BaseViewModel
             return;
         }
 
-        var b = await db.Reservations
+        var b = await db.BonsSortie
             .Include(x => x.ProduitLignes)
                 .ThenInclude(l => l.Retours)
             .Include(x => x.ServiceLignes)
@@ -623,9 +623,9 @@ public partial class ReservationEditViewModel : BaseViewModel
                 {
                     DateRetour = ret.DateRetour.Date,
                     Quantite = ret.Quantite,
-                    Etat = ReservationProduitRetourEtats.IsValid(ret.Etat)
+                    Etat = BonSortieProduitRetourEtats.IsValid(ret.Etat)
                         ? ret.Etat
-                        : ReservationProduitRetourEtats.Good,
+                        : BonSortieProduitRetourEtats.Good,
                     Note = ret.Note
                 });
                 Retours[^1].SyncEtatOption(RetourEtatOptions);
@@ -747,11 +747,11 @@ public partial class ReservationEditViewModel : BaseViewModel
         try
         {
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-            Models.Reservation entity;
+            Models.BonSortie entity;
             if (ReservationId == null)
             {
                 var num = await _numbers.NextLocationAsync(cancellationToken);
-                entity = new Models.Reservation
+                entity = new Models.BonSortie
                 {
                     Numero = num,
                     ClientId = ClientId,
@@ -769,13 +769,13 @@ public partial class ReservationEditViewModel : BaseViewModel
                 foreach (var l in ServiceLignes)
                     entity.ServiceLignes.Add(ToServiceEntityLine(l));
 
-                db.Reservations.Add(entity);
+                db.BonsSortie.Add(entity);
                 await db.SaveChangesAsync(cancellationToken);
                 ReservationId = entity.Id;
             }
             else
             {
-                entity = await db.Reservations
+                entity = await db.BonsSortie
                     .Include(b => b.ProduitLignes)
                     .Include(b => b.ServiceLignes)
                     .FirstAsync(b => b.Id == ReservationId, cancellationToken);
@@ -787,8 +787,8 @@ public partial class ReservationEditViewModel : BaseViewModel
                 entity.Statut = Statut;
                 entity.Caution = Caution;
                 entity.Note = Note;
-                db.ReservationProduitLignes.RemoveRange(entity.ProduitLignes);
-                db.ReservationServiceLignes.RemoveRange(entity.ServiceLignes);
+                db.BonSortieProduitLignes.RemoveRange(entity.ProduitLignes);
+                db.BonSortieServiceLignes.RemoveRange(entity.ServiceLignes);
                 foreach (var l in ProduitLignes)
                     entity.ProduitLignes.Add(ToProduitEntityLine(l));
                 foreach (var l in ServiceLignes)
@@ -857,9 +857,9 @@ public partial class ReservationEditViewModel : BaseViewModel
         };
     }
 
-    private ReservationProduitLigne ToProduitEntityLine(ReservationProduitLineRow l)
+    private BonSortieProduitLigne ToProduitEntityLine(ReservationProduitLineRow l)
     {
-        var entity = new ReservationProduitLigne
+        var entity = new BonSortieProduitLigne
         {
             ProduitId = l.ProduitId,
             Designation = l.Designation,
@@ -873,13 +873,13 @@ public partial class ReservationEditViewModel : BaseViewModel
         };
         foreach (var r in Retours.Where(x => ReferenceEquals(x.Line, l)))
         {
-            entity.Retours.Add(new ReservationProduitRetour
+            entity.Retours.Add(new BonSortieProduitRetour
             {
                 DateRetour = r.DateRetour.Date,
                 Quantite = r.Quantite,
-                Etat = ReservationProduitRetourEtats.IsValid(r.Etat)
+                Etat = BonSortieProduitRetourEtats.IsValid(r.Etat)
                     ? r.Etat
-                    : ReservationProduitRetourEtats.Good,
+                    : BonSortieProduitRetourEtats.Good,
                 Note = r.Note ?? string.Empty,
                 CreatedByUserId = _session.UserId
             });
@@ -887,7 +887,7 @@ public partial class ReservationEditViewModel : BaseViewModel
         return entity;
     }
 
-    private static ReservationServiceLigne ToServiceEntityLine(ReservationServiceLineRow l) => new()
+    private static BonSortieServiceLigne ToServiceEntityLine(ReservationServiceLineRow l) => new()
     {
         ServiceId = l.ServiceId,
         Designation = l.Designation,
@@ -944,7 +944,7 @@ public partial class ReservationEditViewModel : BaseViewModel
     {
         var previous = NewRetourEtat?.Value;
         RetourEtatOptions.Clear();
-        foreach (var value in ReservationProduitRetourEtats.All)
+        foreach (var value in BonSortieProduitRetourEtats.All)
         {
             RetourEtatOptions.Add(new RetourEtatOption
             {
@@ -954,7 +954,7 @@ public partial class ReservationEditViewModel : BaseViewModel
         }
 
         NewRetourEtat = RetourEtatOptions.FirstOrDefault(o => o.Value == previous)
-                        ?? RetourEtatOptions.FirstOrDefault(o => o.Value == ReservationProduitRetourEtats.Good)
+                        ?? RetourEtatOptions.FirstOrDefault(o => o.Value == BonSortieProduitRetourEtats.Good)
                         ?? RetourEtatOptions.FirstOrDefault();
 
         foreach (var row in Retours)
@@ -963,10 +963,10 @@ public partial class ReservationEditViewModel : BaseViewModel
 
     private static string EtatTranslationKey(string value) => value switch
     {
-        ReservationProduitRetourEtats.Good => "Res_Etat_Good",
-        ReservationProduitRetourEtats.Damaged => "Res_Etat_Damaged",
-        ReservationProduitRetourEtats.Lost => "Res_Etat_Lost",
-        ReservationProduitRetourEtats.ToClean => "Res_Etat_ToClean",
+        BonSortieProduitRetourEtats.Good => "Res_Etat_Good",
+        BonSortieProduitRetourEtats.Damaged => "Res_Etat_Damaged",
+        BonSortieProduitRetourEtats.Lost => "Res_Etat_Lost",
+        BonSortieProduitRetourEtats.ToClean => "Res_Etat_ToClean",
         _ => "Res_Etat_Good"
     };
 
@@ -975,7 +975,7 @@ public partial class ReservationEditViewModel : BaseViewModel
         NewRetourDate = DateTime.Today;
         NewRetourQuantite = 1;
         NewRetourNote = string.Empty;
-        NewRetourEtat = RetourEtatOptions.FirstOrDefault(o => o.Value == ReservationProduitRetourEtats.Good)
+        NewRetourEtat = RetourEtatOptions.FirstOrDefault(o => o.Value == BonSortieProduitRetourEtats.Good)
                         ?? RetourEtatOptions.FirstOrDefault();
         RefreshRetourProduitOptions();
     }
@@ -996,9 +996,9 @@ public partial class ReservationEditViewModel : BaseViewModel
             return;
         }
 
-        var etat = NewRetourEtat?.Value ?? ReservationProduitRetourEtats.Good;
-        if (!ReservationProduitRetourEtats.IsValid(etat))
-            etat = ReservationProduitRetourEtats.Good;
+        var etat = NewRetourEtat?.Value ?? BonSortieProduitRetourEtats.Good;
+        if (!BonSortieProduitRetourEtats.IsValid(etat))
+            etat = BonSortieProduitRetourEtats.Good;
 
         var row = new ReservationRetourRow(line)
         {
@@ -1014,7 +1014,7 @@ public partial class ReservationEditViewModel : BaseViewModel
         RefreshRetourProduitOptions();
         NewRetourQuantite = 1;
         NewRetourNote = string.Empty;
-        NewRetourEtat = RetourEtatOptions.FirstOrDefault(o => o.Value == ReservationProduitRetourEtats.Good)
+        NewRetourEtat = RetourEtatOptions.FirstOrDefault(o => o.Value == BonSortieProduitRetourEtats.Good)
                         ?? RetourEtatOptions.FirstOrDefault();
     }
 
@@ -1058,7 +1058,7 @@ public partial class ReservationEditViewModel : BaseViewModel
         try
         {
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-            var res = await db.Reservations
+            var res = await db.BonsSortie
                 .Include(l => l.ProduitLignes)
                 .Include(l => l.ServiceLignes)
                 .FirstAsync(l => l.Id == resId, cancellationToken);
@@ -1082,7 +1082,7 @@ public partial class ReservationEditViewModel : BaseViewModel
                 Numero = blNumero,
                 ClientId = res.ClientId,
                 Date = DateTime.Today,
-                ReservationId = res.Id,
+                BonSortieId = res.Id,
                 Note = res.Note ?? string.Empty,
                 CreatedByUserId = _session.UserId
             };
@@ -1121,7 +1121,7 @@ public partial class ReservationEditViewModel : BaseViewModel
             res.BonLivraisonId = bl.Id;
             await db.SaveChangesAsync(cancellationToken);
 
-            // No stock sync on BL — Reservation owns stock.
+            // No stock sync on BL — BonSortie owns stock.
             BonLivraisonId = bl.Id;
             BlLabel = _locale.Tf("Loc_BlChip", bl.Numero);
             OpenBl(bl.Id);

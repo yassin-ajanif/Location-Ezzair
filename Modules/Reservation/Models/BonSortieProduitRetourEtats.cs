@@ -1,7 +1,7 @@
 namespace GestionCommerciale.Modules.Reservation.Models;
 
-/// <summary>Allowed string values for <see cref="ReservationProduitRetour.Etat"/> (DB check constraint).</summary>
-public static class ReservationProduitRetourEtats
+/// <summary>Allowed string values for <see cref="BonSortieProduitRetour.Etat"/> (DB check constraint).</summary>
+public static class BonSortieProduitRetourEtats
 {
     public const string Good = "good";
     public const string Damaged = "damaged";

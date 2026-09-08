@@ -178,6 +178,36 @@ public static class DocumentTotalsHelper
         return (ht, tva, ht + tva);
     }
 
+    public static (decimal ht, decimal tva, decimal ttc) BonSortieTotals(
+        IEnumerable<BonSortieProduitLigne> produitLignes,
+        IEnumerable<BonSortieServiceLigne> serviceLignes,
+        decimal remiseGlobalePct = 0)
+    {
+        decimal ht = 0, tva = 0;
+        foreach (var l in produitLignes)
+        {
+            var lht = LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise);
+            ht += lht;
+            tva += lht * (l.TauxTVA / 100m);
+        }
+
+        foreach (var l in serviceLignes)
+        {
+            var lht = LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise);
+            ht += lht;
+            tva += lht * (l.TauxTVA / 100m);
+        }
+
+        if (remiseGlobalePct > 0)
+        {
+            var factor = 1 - remiseGlobalePct / 100m;
+            ht *= factor;
+            tva *= factor;
+        }
+
+        return (ht, tva, ht + tva);
+    }
+
     public static (decimal ht, decimal tva, decimal ttc) ReservationTotals(
         IEnumerable<ReservationProduitLigne> produitLignes,
         IEnumerable<ReservationServiceLigne> serviceLignes,

@@ -365,15 +365,15 @@ public sealed class PdfService : IPdfService
     private async Task<string?> ResolveReservationNumeroForBlPdfAsync(BonLivraison bl, CancellationToken cancellationToken)
     {
         await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-        if (bl.ReservationId is int resId)
+        if (bl.BonSortieId is int resId)
         {
-            return await db.Reservations.AsNoTracking()
+            return await db.BonsSortie.AsNoTracking()
                 .Where(r => r.Id == resId)
                 .Select(r => r.Numero)
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
-        return await db.Reservations.AsNoTracking()
+        return await db.BonsSortie.AsNoTracking()
             .Where(r => r.BonLivraisonId == bl.Id)
             .Select(r => r.Numero)
             .FirstOrDefaultAsync(cancellationToken);

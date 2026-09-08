@@ -48,9 +48,12 @@ public class AppDbContext : DbContext
     public DbSet<TypeCharge> TypesCharge => Set<TypeCharge>();
     public DbSet<Charge> Charges => Set<Charge>();
     public DbSet<Service> Services => Set<Service>();
+    public DbSet<BonSortie> BonsSortie => Set<BonSortie>();
+    public DbSet<BonSortieProduitLigne> BonSortieProduitLignes => Set<BonSortieProduitLigne>();
+    public DbSet<BonSortieProduitRetour> BonSortieProduitRetours => Set<BonSortieProduitRetour>();
+    public DbSet<BonSortieServiceLigne> BonSortieServiceLignes => Set<BonSortieServiceLigne>();
     public DbSet<Reservation> Reservations => Set<Reservation>();
     public DbSet<ReservationProduitLigne> ReservationProduitLignes => Set<ReservationProduitLigne>();
-    public DbSet<ReservationProduitRetour> ReservationProduitRetours => Set<ReservationProduitRetour>();
     public DbSet<ReservationServiceLigne> ReservationServiceLignes => Set<ReservationServiceLigne>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -88,12 +91,12 @@ public class AppDbContext : DbContext
             e.HasOne<BonCommandeClient>().WithMany()
                 .HasForeignKey(b => b.BonCommandeClientId)
                 .OnDelete(DeleteBehavior.SetNull);
-            e.HasOne(b => b.Reservation).WithMany()
-                .HasForeignKey(b => b.ReservationId)
+            e.HasOne(b => b.BonSortie).WithMany()
+                .HasForeignKey(b => b.BonSortieId)
                 .OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(b => b.FactureId);
             e.HasIndex(b => b.BonCommandeClientId);
-            e.HasIndex(b => b.ReservationId);
+            e.HasIndex(b => b.BonSortieId);
         });
 
         modelBuilder.Entity<BonCommandeClient>(e =>
@@ -261,45 +264,81 @@ public class AppDbContext : DbContext
             e.HasIndex(l => l.ServiceId);
         });
 
-        modelBuilder.Entity<Reservation>(e =>
+        modelBuilder.Entity<BonSortie>(e =>
         {
             e.ToTable("BonsSortie");
             e.Property(l => l.Statut).HasConversion<int>();
-            e.HasMany(l => l.ProduitLignes).WithOne(x => x.Reservation).HasForeignKey(x => x.ReservationId).OnDelete(DeleteBehavior.Cascade);
-            e.HasMany(l => l.ServiceLignes).WithOne(x => x.Reservation).HasForeignKey(x => x.ReservationId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(l => l.ProduitLignes).WithOne(x => x.BonSortie).HasForeignKey(x => x.BonSortieId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(l => l.ServiceLignes).WithOne(x => x.BonSortie).HasForeignKey(x => x.BonSortieId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(l => l.Facture).WithMany()
                 .HasForeignKey(l => l.FactureId)
                 .OnDelete(DeleteBehavior.SetNull);
             e.HasOne(l => l.BonLivraison).WithMany()
                 .HasForeignKey(l => l.BonLivraisonId)
                 .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(l => l.Reservation).WithMany()
+                .HasForeignKey(l => l.ReservationId)
+                .OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(l => l.FactureId);
             e.HasIndex(l => l.BonLivraisonId);
+            e.HasIndex(l => l.ReservationId);
             e.HasIndex(l => l.ClientId);
             e.HasIndex(l => l.Numero);
+        });
+
+        modelBuilder.Entity<BonSortieProduitLigne>(e =>
+        {
+            e.ToTable("BonSortieProduitLignes");
+            e.HasMany(l => l.Retours).WithOne(r => r.BonSortieProduitLigne)
+                .HasForeignKey(r => r.BonSortieProduitLigneId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(l => l.ProduitId);
+            e.HasIndex(l => l.BonSortieId);
+        });
+
+        modelBuilder.Entity<BonSortieProduitRetour>(e =>
+        {
+            e.ToTable("BonSortieProduitRetours", t =>
+            {
+                t.HasCheckConstraint(
+                    "CK_BonSortieProduitRetours_Etat",
+                    "\"Etat\" IN ('good', 'damaged', 'lost', 'to clean')");
+            });
+            e.Property(r => r.Etat).IsRequired().HasMaxLength(32);
+            e.HasIndex(r => r.BonSortieProduitLigneId);
+            e.HasIndex(r => r.DateRetour);
+        });
+
+        modelBuilder.Entity<BonSortieServiceLigne>(e =>
+        {
+            e.ToTable("BonSortieServiceLignes");
+            e.HasOne<Service>().WithMany()
+                .HasForeignKey(l => l.ServiceId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(l => l.ServiceId);
+            e.HasIndex(l => l.BonSortieId);
+        });
+
+        modelBuilder.Entity<Reservation>(e =>
+        {
+            e.ToTable("Reservations");
+            e.Property(r => r.Statut).HasConversion<int>();
+            e.HasMany(r => r.ProduitLignes).WithOne(x => x.Reservation).HasForeignKey(x => x.ReservationId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(r => r.ServiceLignes).WithOne(x => x.Reservation).HasForeignKey(x => x.ReservationId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.BonSortie).WithMany()
+                .HasForeignKey(r => r.BonSortieId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(r => r.BonSortieId);
+            e.HasIndex(r => r.ClientId);
+            e.HasIndex(r => r.Numero);
+            e.HasIndex(r => r.Statut);
         });
 
         modelBuilder.Entity<ReservationProduitLigne>(e =>
         {
             e.ToTable("ReservationProduitLignes");
-            e.HasMany(l => l.Retours).WithOne(r => r.ReservationProduitLigne)
-                .HasForeignKey(r => r.ReservationProduitLigneId)
-                .OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(l => l.ProduitId);
             e.HasIndex(l => l.ReservationId);
-        });
-
-        modelBuilder.Entity<ReservationProduitRetour>(e =>
-        {
-            e.ToTable("ReservationProduitRetours", t =>
-            {
-                t.HasCheckConstraint(
-                    "CK_ReservationProduitRetours_Etat",
-                    "\"Etat\" IN ('good', 'damaged', 'lost', 'to clean')");
-            });
-            e.Property(r => r.Etat).IsRequired().HasMaxLength(32);
-            e.HasIndex(r => r.ReservationProduitLigneId);
-            e.HasIndex(r => r.DateRetour);
         });
 
         modelBuilder.Entity<ReservationServiceLigne>(e =>

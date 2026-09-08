@@ -40,7 +40,10 @@ public sealed class DocumentNumberService : IDocumentNumberService
         NextFromDbAsync(db => db.AvoirsFournisseurs.AsNoTracking().Select(d => d.Numero).ToListAsync(cancellationToken), "AVF", cancellationToken);
 
     public Task<string> NextLocationAsync(CancellationToken cancellationToken = default) =>
-        NextFromDbAsync(db => db.Reservations.AsNoTracking().Select(d => d.Numero).ToListAsync(cancellationToken), "BS", cancellationToken);
+        NextFromDbAsync(db => db.BonsSortie.AsNoTracking().Select(d => d.Numero).ToListAsync(cancellationToken), "BS", cancellationToken);
+
+    public Task<string> NextReservationAsync(CancellationToken cancellationToken = default) =>
+        NextFromDbAsync(db => db.Reservations.AsNoTracking().Select(d => d.Numero).ToListAsync(cancellationToken), "RES", cancellationToken);
 
     private async Task<string> NextFromDbAsync(
         Func<AppDbContext, Task<List<string>>> loadNumeros,

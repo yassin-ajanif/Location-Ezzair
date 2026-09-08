@@ -21,7 +21,7 @@ public sealed class ReservationWorkflowService : IReservationWorkflowService
         await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
         await using var trx = await db.Database.BeginTransactionAsync(cancellationToken);
 
-        var res = await db.Reservations
+        var res = await db.BonsSortie
             .Include(l => l.ProduitLignes)
             .FirstAsync(l => l.Id == reservationId, cancellationToken);
         await ApplyStockAsync(db, res, userId, cancellationToken);
@@ -33,7 +33,7 @@ public sealed class ReservationWorkflowService : IReservationWorkflowService
     public Task ClearStockAsync(AppDbContext db, int reservationId, string numero, int? userId, CancellationToken cancellationToken = default) =>
         _stock.ResyncLocationStockAsync(db, reservationId, numero, [], userId, cancellationToken);
 
-    private Task ApplyStockAsync(AppDbContext db, Models.Reservation res, int? userId, CancellationToken cancellationToken)
+    private Task ApplyStockAsync(AppDbContext db, Models.BonSortie res, int? userId, CancellationToken cancellationToken)
     {
         var lines = res.ProduitLignes
             .Where(l => l.ProduitId is > 0)

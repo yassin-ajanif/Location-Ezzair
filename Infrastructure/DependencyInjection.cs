@@ -54,6 +54,7 @@ public static class DependencyInjection
         services.AddSingleton<IPosService, PosService>();
         services.AddSingleton<IBonLivraisonWorkflowService, BonLivraisonWorkflowService>();
         services.AddSingleton<IReservationWorkflowService, ReservationWorkflowService>();
+        services.AddSingleton<ISoftReservationTransformService, SoftReservationTransformService>();
         services.AddSingleton<IReservationAvailabilityService, ReservationAvailabilityService>();
         services.AddSingleton<IBonReceptionWorkflowService, BonReceptionWorkflowService>();
         services.AddSingleton<IFactureBlLinkService, FactureBlLinkService>();
@@ -88,6 +89,8 @@ public static class DependencyInjection
         services.AddTransient<BLEditViewModel>();
         services.AddTransient<ReservationListViewModel>();
         services.AddTransient<ReservationEditViewModel>();
+        services.AddTransient<SoftReservationListViewModel>();
+        services.AddTransient<SoftReservationEditViewModel>();
         services.AddTransient<EtatClientViewModel>();
         services.AddTransient<ProductAvailabilityViewModel>();
         services.AddTransient<BRListViewModel>();

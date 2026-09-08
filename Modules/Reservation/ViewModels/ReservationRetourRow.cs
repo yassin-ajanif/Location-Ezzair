@@ -9,7 +9,7 @@ public partial class ReservationRetourRow : ObservableObject
 
     [ObservableProperty] private DateTime _dateRetour = DateTime.Today;
     [ObservableProperty] private decimal _quantite;
-    [ObservableProperty] private string _etat = ReservationProduitRetourEtats.Good;
+    [ObservableProperty] private string _etat = BonSortieProduitRetourEtats.Good;
     [ObservableProperty] private RetourEtatOption? _etatOption;
     [ObservableProperty] private string _note = string.Empty;
     [ObservableProperty] private decimal _maxQuantite = 999_999m;
@@ -34,7 +34,7 @@ public partial class ReservationRetourRow : ObservableObject
     public void SyncEtatOption(IEnumerable<RetourEtatOption> options)
     {
         var match = options.FirstOrDefault(o => o.Value == Etat)
-                    ?? options.FirstOrDefault(o => o.Value == ReservationProduitRetourEtats.Good)
+                    ?? options.FirstOrDefault(o => o.Value == BonSortieProduitRetourEtats.Good)
                     ?? options.FirstOrDefault();
         if (!ReferenceEquals(EtatOption, match))
             EtatOption = match;

@@ -72,9 +72,9 @@ public partial class EtatClientViewModel : BaseViewModel
             var devise = string.IsNullOrWhiteSpace(cfg.Devise) ? "MAD" : cfg.Devise.Trim();
 
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-            var openLines = await db.ReservationProduitLignes.AsNoTracking()
-                .Include(l => l.Reservation)
-                .Where(l => l.Reservation != null && l.Quantite > l.QuantiteRetournee)
+            var openLines = await db.BonSortieProduitLignes.AsNoTracking()
+                .Include(l => l.BonSortie)
+                .Where(l => l.BonSortie != null && l.Quantite > l.QuantiteRetournee)
                 .ToListAsync(cancellationToken);
 
             if (openLines.Count == 0)
@@ -85,7 +85,7 @@ public partial class EtatClientViewModel : BaseViewModel
                 return;
             }
 
-            var clientIds = openLines.Select(l => l.Reservation!.ClientId).Distinct().ToList();
+            var clientIds = openLines.Select(l => l.BonSortie!.ClientId).Distinct().ToList();
             var clients = await db.Tiers.AsNoTracking()
                 .Where(t => clientIds.Contains(t.Id))
                 .ToDictionaryAsync(t => t.Id, cancellationToken);
@@ -101,16 +101,16 @@ public partial class EtatClientViewModel : BaseViewModel
             var encoreSuffix = _locale.T("EtatClient_EncoreSuffix");
 
             _allClients = openLines
-                .GroupBy(l => l.Reservation!.ClientId)
+                .GroupBy(l => l.BonSortie!.ClientId)
                 .Select(g =>
                 {
                     clients.TryGetValue(g.Key, out var c);
                     var encore = g.Sum(l => l.Quantite - l.QuantiteRetournee);
-                    var fins = g.Select(l => l.Reservation!.DateFinPrevue).ToList();
+                    var fins = g.Select(l => l.BonSortie!.DateFinPrevue).ToList();
                     var prochaine = fins.Min();
                     var enRetard = fins.Any(f => f.Date < today);
-                    var resIds = g.Select(l => l.ReservationId).Distinct().Count();
-                    var caution = g.Select(l => l.Reservation!).GroupBy(x => x.Id).Sum(x => x.First().Caution);
+                    var resIds = g.Select(l => l.BonSortieId).Distinct().Count();
+                    var caution = g.Select(l => l.BonSortie!).GroupBy(x => x.Id).Sum(x => x.First().Caution);
                     var qteLabel = encore.ToString("N0", CultureInfo.CurrentCulture);
                     var finLabel = prochaine.ToString("d", CultureInfo.CurrentCulture);
                     var row = new EtatClientRow
@@ -148,7 +148,7 @@ public partial class EtatClientViewModel : BaseViewModel
     }
 
     private static IEnumerable<EtatClientItemRow> BuildItems(
-        IGrouping<int, ReservationProduitLigne> lines,
+        IGrouping<int, BonSortieProduitLigne> lines,
         Dictionary<int, string> refs,
         DateTime today,
         string retardOui,
@@ -158,27 +158,27 @@ public partial class EtatClientViewModel : BaseViewModel
             .Select(l =>
             {
                 var encore = l.Quantite - l.QuantiteRetournee;
-                var enRetard = l.Reservation!.DateFinPrevue.Date < today;
+                var enRetard = l.BonSortie!.DateFinPrevue.Date < today;
                 var pref = l.ProduitId is { } pid && refs.TryGetValue(pid, out var r) ? r : string.Empty;
                 var qteLabel = encore.ToString("N2", CultureInfo.CurrentCulture);
                 return new EtatClientItemRow
                 {
-                    ReservationId = l.ReservationId,
-                    ReservationNumero = l.Reservation.Numero,
+                    ReservationId = l.BonSortieId,
+                    ReservationNumero = l.BonSortie.Numero,
                     ProduitReference = pref,
                     Designation = l.Designation,
                     QuantiteLouee = l.Quantite,
                     QuantiteRetournee = l.QuantiteRetournee,
                     QuantiteEncore = encore,
                     QuantiteEncoreLabel = $"{qteLabel} {encoreSuffix}",
-                    DateDebut = l.Reservation.DateDebut,
-                    DateFinPrevue = l.Reservation.DateFinPrevue,
-                    PeriodeLabel = $"{l.Reservation.DateDebut:dd/MM} → {l.Reservation.DateFinPrevue:dd/MM}",
+                    DateDebut = l.BonSortie.DateDebut,
+                    DateFinPrevue = l.BonSortie.DateFinPrevue,
+                    PeriodeLabel = $"{l.BonSortie.DateDebut:dd/MM} → {l.BonSortie.DateFinPrevue:dd/MM}",
                     EstEnRetard = enRetard,
                     RetardLabel = enRetard ? retardOui : retardNon,
                     MetaLabel = string.IsNullOrWhiteSpace(pref)
-                        ? $"{l.Reservation.Numero}  ·  {l.Reservation.DateDebut:dd/MM} → {l.Reservation.DateFinPrevue:dd/MM}"
-                        : $"{pref}  ·  {l.Reservation.Numero}  ·  {l.Reservation.DateDebut:dd/MM} → {l.Reservation.DateFinPrevue:dd/MM}",
+                        ? $"{l.BonSortie.Numero}  ·  {l.BonSortie.DateDebut:dd/MM} → {l.BonSortie.DateFinPrevue:dd/MM}"
+                        : $"{pref}  ·  {l.BonSortie.Numero}  ·  {l.BonSortie.DateDebut:dd/MM} → {l.BonSortie.DateFinPrevue:dd/MM}",
                 };
             })
             .OrderByDescending(i => i.EstEnRetard)

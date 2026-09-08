@@ -1,8 +1,10 @@
 namespace GestionCommerciale.Modules.Reservation.Models;
 
+/// <summary>Soft-booking reservation status (no stock movement).</summary>
 public enum StatutReservation
 {
-    EnCours = 1,
-    PartiellementRetournee = 2,
-    Retournee = 3
+    Brouillon = 0,
+    Confirmee = 1,
+    Transformee = 2,
+    Annulee = 3
 }

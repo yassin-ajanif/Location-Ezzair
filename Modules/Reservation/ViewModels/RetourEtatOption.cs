@@ -28,9 +28,9 @@ public sealed class RetourEtatOption
 
     private static (IBrush Bg, IBrush Border, IBrush Fg) ColorsFor(string value) => value switch
     {
-        ReservationProduitRetourEtats.Good => (GoodBg, GoodBorder, GoodFg),
-        ReservationProduitRetourEtats.Damaged or ReservationProduitRetourEtats.Lost => (BadBg, BadBorder, BadFg),
-        ReservationProduitRetourEtats.ToClean => (CleanBg, CleanBorder, CleanFg),
+        BonSortieProduitRetourEtats.Good => (GoodBg, GoodBorder, GoodFg),
+        BonSortieProduitRetourEtats.Damaged or BonSortieProduitRetourEtats.Lost => (BadBg, BadBorder, BadFg),
+        BonSortieProduitRetourEtats.ToClean => (CleanBg, CleanBorder, CleanFg),
         _ => (GoodBg, GoodBorder, GoodFg)
     };
 }

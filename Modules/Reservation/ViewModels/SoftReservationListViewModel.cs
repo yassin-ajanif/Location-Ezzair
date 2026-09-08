@@ -1,7 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using GestionCommerciale.Modules.Reservation.Services;
+using GestionCommerciale.Modules.Reservation.Models;
 using GestionCommerciale.Shared.Database;
 using GestionCommerciale.Shared.Helpers;
 using GestionCommerciale.Shared.Services;
@@ -11,7 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace GestionCommerciale.Modules.Reservation.ViewModels;
 
-public partial class ReservationListViewModel : BaseViewModel
+public partial class SoftReservationListViewModel : BaseViewModel
 {
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
     private readonly WorkspaceNavigator _workspace;
@@ -19,16 +19,14 @@ public partial class ReservationListViewModel : BaseViewModel
     private readonly IDialogService _dialog;
     private readonly ILocaleService _locale;
     private readonly IAppSettingsService _settings;
-    private readonly IReservationWorkflowService _workflow;
 
-    public ReservationListViewModel(
+    public SoftReservationListViewModel(
         IDbContextFactory<AppDbContext> dbFactory,
         WorkspaceNavigator workspaceNavigator,
         IServiceProvider sp,
         IDialogService dialog,
         ILocaleService locale,
-        IAppSettingsService settings,
-        IReservationWorkflowService workflow)
+        IAppSettingsService settings)
     {
         _dbFactory = dbFactory;
         _workspace = workspaceNavigator;
@@ -36,10 +34,9 @@ public partial class ReservationListViewModel : BaseViewModel
         _dialog = dialog;
         _locale = locale;
         _settings = settings;
-        _workflow = workflow;
         _locale.CultureApplied += (_, _) => RefreshListToolbar();
         RefreshListToolbar();
-        Title = _locale.T("LocList_Title");
+        Title = _locale.T("SoftResList_Title");
         Pagination = new PaginationHelper(() => _ = LoadPageAsync(CancellationToken.None));
     }
 
@@ -63,7 +60,7 @@ public partial class ReservationListViewModel : BaseViewModel
     {
         BtnNew = _locale.T("Btn_New");
         UpdateBtnFilterDateText();
-        MenuDelete = _locale.T("Loc_MenuDelete");
+        MenuDelete = _locale.T("SoftRes_MenuDelete");
         ColHeaderRef = _locale.T("DevisList_ColRef");
         ColHeaderParty = _locale.T("Lbl_Client");
         ColHeaderDate = _locale.T("DevisList_ColDate");
@@ -72,11 +69,11 @@ public partial class ReservationListViewModel : BaseViewModel
         ColHeaderTtc = _locale.T("DevisList_ColTtc");
         ColHeaderNote = _locale.T("DevisList_ColNote");
         SearchWatermark = _locale.T("DocList_SearchPlaceholderClient");
-        Title = _locale.T("LocList_Title");
+        Title = _locale.T("SoftResList_Title");
     }
 
-    public ObservableCollection<ReservationListRow> Items { get; } = [];
-    [ObservableProperty] private ReservationListRow? _selected;
+    public ObservableCollection<SoftReservationListRow> Items { get; } = [];
+    [ObservableProperty] private SoftReservationListRow? _selected;
     [ObservableProperty] private string _searchText = string.Empty;
 
     partial void OnSearchTextChanged(string value) => _ = LoadPageAsync(CancellationToken.None, true);
@@ -92,11 +89,14 @@ public partial class ReservationListViewModel : BaseViewModel
             var cfg = await _settings.GetAsync(ct);
             var devise = string.IsNullOrWhiteSpace(cfg.Devise) ? "MAD" : cfg.Devise.Trim();
             await using var db = await _dbFactory.CreateDbContextAsync(ct);
-            var q = db.BonsSortie.AsNoTracking().Include(b => b.ProduitLignes).Include(b => b.ServiceLignes).AsQueryable();
+            var q = db.Reservations.AsNoTracking()
+                .Include(r => r.ProduitLignes)
+                .Include(r => r.ServiceLignes)
+                .AsQueryable();
             if (_dateFrom.HasValue)
-                q = q.Where(b => b.Date >= _dateFrom.Value);
+                q = q.Where(r => r.Date >= _dateFrom.Value);
             if (_dateTo.HasValue)
-                q = q.Where(b => b.Date <= _dateTo.Value);
+                q = q.Where(r => r.Date <= _dateTo.Value);
 
             var search = SearchText?.Trim();
             if (!string.IsNullOrEmpty(search))
@@ -104,17 +104,17 @@ public partial class ReservationListViewModel : BaseViewModel
                     || db.Tiers.AsNoTracking().Any(t => t.Id == res.ClientId && EF.Functions.Like(t.Nom, $"%{search}%")));
 
             var total = await q.CountAsync(ct);
-            var list = await q.OrderByDescending(b => b.Date)
+            var list = await q.OrderByDescending(r => r.Date)
                 .Skip(Pagination.Skip).Take(Pagination.PageSize)
                 .ToListAsync(ct);
-            var ids = list.Select(b => b.ClientId).Distinct().ToList();
+            var ids = list.Select(r => r.ClientId).Distinct().ToList();
             var noms = await db.Tiers.AsNoTracking()
                 .Where(t => ids.Contains(t.Id))
                 .ToDictionaryAsync(t => t.Id, t => t.Nom, ct);
             var selId = Selected?.Reservation.Id;
             Items.Clear();
-            foreach (var b in list)
-                Items.Add(ReservationListRow.Create(b, noms.GetValueOrDefault(b.ClientId) ?? string.Empty, devise, _locale));
+            foreach (var r in list)
+                Items.Add(SoftReservationListRow.Create(r, noms.GetValueOrDefault(r.ClientId) ?? string.Empty, devise, _locale));
             Pagination.TotalCount = total;
             if (selId is { } id)
                 Selected = Items.FirstOrDefault(x => x.Reservation.Id == id);
@@ -158,7 +158,7 @@ public partial class ReservationListViewModel : BaseViewModel
     [RelayCommand]
     private void NewReservation()
     {
-        var vm = _sp.GetRequiredService<ReservationEditViewModel>();
+        var vm = _sp.GetRequiredService<SoftReservationEditViewModel>();
         vm.Load(null);
         _workspace.Open(vm);
     }
@@ -167,39 +167,45 @@ public partial class ReservationListViewModel : BaseViewModel
     private void OpenSelected()
     {
         if (Selected == null) return;
-        var vm = _sp.GetRequiredService<ReservationEditViewModel>();
+        var vm = _sp.GetRequiredService<SoftReservationEditViewModel>();
         vm.Load(Selected.Reservation.Id);
         _workspace.Open(vm);
     }
 
     [RelayCommand]
-    private async Task DeleteReservationAsync(ReservationListRow? row, CancellationToken cancellationToken)
+    private async Task DeleteReservationAsync(SoftReservationListRow? row, CancellationToken cancellationToken)
     {
         if (row == null) return;
         var item = row.Reservation;
 
-        if (!await _dialog.ConfirmAsync(_locale.T("Loc_Title"), _locale.Tf("Loc_ConfirmDelete", item.Numero), cancellationToken))
+        if (item.Statut == StatutReservation.Transformee)
+        {
+            await _dialog.ShowErrorAsync(_locale.T("SoftRes_Title"), _locale.T("SoftRes_ErrDeleteTransformed"), cancellationToken);
+            return;
+        }
+
+        if (!await _dialog.ConfirmAsync(_locale.T("SoftRes_Title"), _locale.Tf("SoftRes_ConfirmDelete", item.Numero), cancellationToken))
             return;
 
         IsBusy = true;
         try
         {
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-            await using var trx = await db.Database.BeginTransactionAsync(cancellationToken);
-            await _workflow.ClearStockAsync(db, item.Id, item.Numero, null, cancellationToken);
-            var entity = await db.BonsSortie.Include(b => b.ProduitLignes).Include(b => b.ServiceLignes).FirstAsync(b => b.Id == item.Id, cancellationToken);
-            db.BonsSortie.Remove(entity);
+            var entity = await db.Reservations
+                .Include(r => r.ProduitLignes)
+                .Include(r => r.ServiceLignes)
+                .FirstAsync(r => r.Id == item.Id, cancellationToken);
+            db.Reservations.Remove(entity);
             await db.SaveChangesAsync(cancellationToken);
-            await trx.CommitAsync(cancellationToken);
             if (Selected?.Reservation.Id == item.Id)
                 Selected = null;
             Items.Remove(row);
-            await _dialog.ShowInfoAsync(_locale.T("Loc_Title"), _locale.T("Loc_Deleted"), cancellationToken);
+            await _dialog.ShowInfoAsync(_locale.T("SoftRes_Title"), _locale.T("SoftRes_Deleted"), cancellationToken);
         }
         catch (Exception ex)
         {
-            AppLog.Error("Échec de la suppression de la réservation", ex, "ReservationListViewModel.DeleteReservationAsync");
-            await _dialog.ShowErrorAsync(_locale.T("Loc_Title"), ex.Message, cancellationToken);
+            AppLog.Error("Échec de la suppression de la réservation soft", ex, "SoftReservationListViewModel.DeleteReservationAsync");
+            await _dialog.ShowErrorAsync(_locale.T("SoftRes_Title"), ex.Message, cancellationToken);
         }
         finally
         {

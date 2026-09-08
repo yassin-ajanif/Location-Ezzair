@@ -50,6 +50,10 @@
                     Background="{Binding IsNavLocationActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=bg}"
                     Foreground="{Binding IsNavLocationActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=fg}"
                     BorderBrush="{Binding IsNavLocationActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=border}"/>
+            <Button Content="{Binding NavReservation}" Command="{Binding GoReservationCommand}" HorizontalAlignment="Stretch" IsVisible="{Binding ShowNavReservation}"
+                    Background="{Binding IsNavReservationActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=bg}"
+                    Foreground="{Binding IsNavReservationActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=fg}"
+                    BorderBrush="{Binding IsNavReservationActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=border}"/>
             <Button Content="{Binding NavBl}" Command="{Binding GoBLCommand}" HorizontalAlignment="Stretch" IsVisible="{Binding ShowNavBL}"
                     Background="{Binding IsNavBlActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=bg}"
                     Foreground="{Binding IsNavBlActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=fg}"

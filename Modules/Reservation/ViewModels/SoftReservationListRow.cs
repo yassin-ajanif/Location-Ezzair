@@ -6,9 +6,9 @@ using GestionCommerciale.Shared.Services;
 
 namespace GestionCommerciale.Modules.Reservation.ViewModels;
 
-public sealed class ReservationListRow
+public sealed class SoftReservationListRow
 {
-    public required Models.BonSortie Reservation { get; init; }
+    public required Models.Reservation Reservation { get; init; }
     public string ClientNom { get; init; } = string.Empty;
     public string DateShort { get; init; } = string.Empty;
     public string PeriodeLabel { get; init; } = string.Empty;
@@ -19,22 +19,23 @@ public sealed class ReservationListRow
     public string TtcLabel { get; init; } = string.Empty;
     public string NotePreview { get; init; } = string.Empty;
 
-    public static ReservationListRow Create(Models.BonSortie res, string clientNom, string devise, ILocaleService locale)
+    public static SoftReservationListRow Create(Models.Reservation res, string clientNom, string devise, ILocaleService locale)
     {
-        var produitLignes = res.ProduitLignes ?? [];
-        var statut = ReservationStatutLabels.FromQuantites(
-            produitLignes.Select(l => (l.Quantite, l.QuantiteRetournee)));
-        var (_, _, ttc) = DocumentTotalsHelper.BonSortieTotals(produitLignes, res.ServiceLignes ?? [], res.RemiseGlobale);
-        return new ReservationListRow
+        var statut = SoftReservationStatutLabels.Normalize(res.Statut);
+        var (_, _, ttc) = DocumentTotalsHelper.ReservationTotals(
+            res.ProduitLignes ?? [],
+            res.ServiceLignes ?? [],
+            res.RemiseGlobale);
+        return new SoftReservationListRow
         {
             Reservation = res,
             ClientNom = clientNom,
             DateShort = res.Date.ToString("d", CultureInfo.CurrentCulture),
             PeriodeLabel = $"{res.DateDebut:dd/MM} → {res.DateFinPrevue:dd/MM}",
-            StatutLabel = ReservationStatutLabels.Format(locale, statut),
-            StatutChipBackground = ReservationStatutLabels.ChipBackground(statut),
-            StatutChipForeground = ReservationStatutLabels.ChipForeground(statut),
-            StatutChipBorder = ReservationStatutLabels.ChipBorder(statut),
+            StatutLabel = SoftReservationStatutLabels.Format(locale, statut),
+            StatutChipBackground = SoftReservationStatutLabels.ChipBackground(statut),
+            StatutChipForeground = SoftReservationStatutLabels.ChipForeground(statut),
+            StatutChipBorder = SoftReservationStatutLabels.ChipBorder(statut),
             TtcLabel = $"{ttc:N2} {devise}",
             NotePreview = DocumentListFormat.NotePreview(res.Note),
         };

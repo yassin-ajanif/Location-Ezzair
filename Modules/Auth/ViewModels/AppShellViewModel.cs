@@ -67,6 +67,7 @@ public partial class AppShellViewModel : BaseViewModel
     [ObservableProperty] private string _navDevis = string.Empty;
     [ObservableProperty] private string _navBl = string.Empty;
     [ObservableProperty] private string _navLocation = string.Empty;
+    [ObservableProperty] private string _navReservation = string.Empty;
     [ObservableProperty] private string _navEtatClient = string.Empty;
     [ObservableProperty] private string _navFactures = string.Empty;
     [ObservableProperty] private string _navAvoirs = string.Empty;
@@ -94,6 +95,7 @@ public partial class AppShellViewModel : BaseViewModel
     [ObservableProperty] private bool _isNavDevisActive;
     [ObservableProperty] private bool _isNavBlActive;
     [ObservableProperty] private bool _isNavLocationActive;
+    [ObservableProperty] private bool _isNavReservationActive;
     [ObservableProperty] private bool _isNavEtatClientActive;
     [ObservableProperty] private bool _isNavFacturesActive;
     [ObservableProperty] private bool _isNavAvoirsActive;
@@ -119,6 +121,7 @@ public partial class AppShellViewModel : BaseViewModel
         NavDevis = _locale.T("Nav_Devis");
         NavBl = _locale.T("Nav_BL");
         NavLocation = _locale.T("Nav_Location");
+        NavReservation = _locale.T("Nav_Reservation");
         NavEtatClient = _locale.T("Nav_EtatClient");
         NavFactures = _locale.T("Nav_Factures");
         NavAvoirs = _locale.T("Nav_Avoirs");
@@ -192,6 +195,7 @@ public partial class AppShellViewModel : BaseViewModel
     public bool ShowNavDevis => _session.CanAccessDevis;
     public bool ShowNavBL => _session.CanAccessBL;
     public bool ShowNavLocation => _session.CanAccessLocation;
+    public bool ShowNavReservation => _session.CanAccessLocation;
     public bool ShowNavEtatClient => _session.CanAccessLocation;
     public bool ShowNavAvailability => _session.CanAccessLocation;
     public bool ShowNavBR => _session.CanAccessBR;
@@ -258,6 +262,14 @@ public partial class AppShellViewModel : BaseViewModel
     private void GoLocation()
     {
         var vm = _sp.GetRequiredService<ReservationListViewModel>();
+        _workspace.Open(vm);
+        vm.LoadCommand.Execute(null);
+    }
+
+    [RelayCommand]
+    private void GoReservation()
+    {
+        var vm = _sp.GetRequiredService<SoftReservationListViewModel>();
         _workspace.Open(vm);
         vm.LoadCommand.Execute(null);
     }
@@ -343,6 +355,7 @@ public partial class AppShellViewModel : BaseViewModel
         IsNavDevisActive = p is DevisListViewModel or DevisEditViewModel;
         IsNavBlActive = p is BLListViewModel or BLEditViewModel;
         IsNavLocationActive = p is ReservationListViewModel or ReservationEditViewModel;
+        IsNavReservationActive = p is SoftReservationListViewModel or SoftReservationEditViewModel;
         IsNavEtatClientActive = p is EtatClientViewModel;
         IsNavFacturesActive = p is FactureListViewModel or FactureEditViewModel;
         IsNavAvoirsActive = p is AvoirListViewModel or AvoirEditViewModel;

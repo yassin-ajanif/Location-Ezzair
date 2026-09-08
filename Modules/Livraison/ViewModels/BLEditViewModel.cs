@@ -409,10 +409,10 @@ public partial class BLEditViewModel : BaseViewModel
                 .FirstAsync(cancellationToken);
         }
 
-        ReservationId = b.ReservationId;
+        ReservationId = b.BonSortieId;
         if (ReservationId is null)
         {
-            ReservationId = await db.Reservations.AsNoTracking()
+            ReservationId = await db.BonsSortie.AsNoTracking()
                 .Where(r => r.BonLivraisonId == b.Id)
                 .Select(r => (int?)r.Id)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -420,7 +420,7 @@ public partial class BLEditViewModel : BaseViewModel
 
         if (ReservationId is { } resId)
         {
-            var resNumero = await db.Reservations.AsNoTracking()
+            var resNumero = await db.BonsSortie.AsNoTracking()
                 .Where(r => r.Id == resId)
                 .Select(r => r.Numero)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -597,7 +597,7 @@ public partial class BLEditViewModel : BaseViewModel
                     Numero = num,
                     ClientId = ClientId,
                     DevisId = DevisId,
-                    ReservationId = ReservationId,
+                    BonSortieId = ReservationId,
                     Date = Date.DateTime,
                     Note = BonCommandeReferenceStorage.Format(BonCommandeReference, Note),
                     CreatedByUserId = _session.UserId
@@ -626,7 +626,7 @@ public partial class BLEditViewModel : BaseViewModel
                 entity = await db.BonsLivraison.Include(b => b.Lignes).FirstAsync(b => b.Id == BlId, cancellationToken);
                 entity.ClientId = ClientId;
                 entity.DevisId = DevisId;
-                entity.ReservationId = ReservationId;
+                entity.BonSortieId = ReservationId;
                 entity.Date = Date.DateTime;
                 entity.Note = BonCommandeReferenceStorage.Format(BonCommandeReference, Note);
                 entity.BonCommandeClientId = null;
