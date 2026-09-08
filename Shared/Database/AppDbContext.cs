@@ -263,7 +263,7 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Reservation>(e =>
         {
-            e.ToTable("Reservations");
+            e.ToTable("BonsSortie");
             e.Property(l => l.Statut).HasConversion<int>();
             e.HasMany(l => l.ProduitLignes).WithOne(x => x.Reservation).HasForeignKey(x => x.ReservationId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(l => l.ServiceLignes).WithOne(x => x.Reservation).HasForeignKey(x => x.ReservationId).OnDelete(DeleteBehavior.Cascade);
