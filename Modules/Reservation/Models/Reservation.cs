@@ -10,7 +10,7 @@ public class Reservation : BaseEntity
     public DateTime Date { get; set; }
     public DateTime DateDebut { get; set; }
     public DateTime DateFinPrevue { get; set; }
-    public StatutReservation Statut { get; set; } = StatutReservation.Brouillon;
+    public StatutReservation Statut { get; set; } = StatutReservation.Confirmee;
     public decimal Caution { get; set; }
     public decimal RemiseGlobale { get; set; }
     public string Note { get; set; } = string.Empty;

@@ -206,7 +206,7 @@ public partial class SoftReservationEditViewModel : BaseViewModel
     [ObservableProperty] private DateTime _date = DateTime.Today;
     [ObservableProperty] private DateTime _dateDebut = DateTime.Today;
     [ObservableProperty] private DateTime _dateFinPrevue = DateTime.Today.AddDays(1);
-    [ObservableProperty] private StatutReservation _statut = StatutReservation.Brouillon;
+    [ObservableProperty] private StatutReservation _statut = StatutReservation.Confirmee;
     [ObservableProperty] private SoftReservationStatutOption? _selectedStatutOption;
     [ObservableProperty] private string _statutLabel = string.Empty;
     [ObservableProperty] private IBrush _statutChipBackground = Brushes.Transparent;
@@ -222,14 +222,14 @@ public partial class SoftReservationEditViewModel : BaseViewModel
     [ObservableProperty] private bool _canEditStatut = true;
 
     public bool HasBonSortieLabel => !string.IsNullOrEmpty(BonSortieLabel);
-    public bool IsEditable => Statut is not StatutReservation.Transformee and not StatutReservation.Annulee;
+    public bool IsEditable => Statut != StatutReservation.Transformee;
 
     partial void OnReservationIdChanged(int? value) => RemoveReservationCommand.NotifyCanExecuteChanged();
 
     partial void OnStatutChanged(StatutReservation value)
     {
         NotifyStatutChip();
-        CanEditStatut = value is StatutReservation.Brouillon or StatutReservation.Confirmee;
+        CanEditStatut = false;
         OnPropertyChanged(nameof(IsEditable));
         SyncSelectedStatutOption();
         RemoveReservationCommand.NotifyCanExecuteChanged();
@@ -257,7 +257,7 @@ public partial class SoftReservationEditViewModel : BaseViewModel
     {
         var previous = SelectedStatutOption?.Value ?? Statut;
         StatutOptions.Clear();
-        foreach (var s in new[] { StatutReservation.Brouillon, StatutReservation.Confirmee })
+        foreach (var s in new[] { StatutReservation.Confirmee })
         {
             StatutOptions.Add(new SoftReservationStatutOption
             {
@@ -266,7 +266,7 @@ public partial class SoftReservationEditViewModel : BaseViewModel
             });
         }
 
-        if (Statut is StatutReservation.Transformee or StatutReservation.Annulee)
+        if (Statut == StatutReservation.Transformee)
         {
             StatutOptions.Add(new SoftReservationStatutOption
             {
@@ -498,7 +498,7 @@ public partial class SoftReservationEditViewModel : BaseViewModel
             Date = DateTime.Today;
             DateDebut = DateTime.Today;
             DateFinPrevue = DateTime.Today.AddDays(1);
-            Statut = StatutReservation.Brouillon;
+            Statut = StatutReservation.Confirmee;
             Caution = 0;
             RemiseGlobale = 0;
             Note = string.Empty;
@@ -633,8 +633,7 @@ public partial class SoftReservationEditViewModel : BaseViewModel
             return;
         }
 
-        if (Statut is not StatutReservation.Brouillon and not StatutReservation.Confirmee)
-            Statut = StatutReservation.Brouillon;
+        if (Statut != StatutReservation.Confirmee && Statut != StatutReservation.Transformee) Statut = StatutReservation.Confirmee;
 
         var periodStart = DateDebut.Date;
         var periodEnd = DateFinPrevue.Date;
@@ -805,7 +804,7 @@ public partial class SoftReservationEditViewModel : BaseViewModel
     }
 
     private bool CanToBonSortie() =>
-        ReservationId != null && Statut is not StatutReservation.Annulee;
+        ReservationId != null;
 
     [RelayCommand(CanExecute = nameof(CanToBonSortie))]
     private async Task ToBonSortieAsync(CancellationToken cancellationToken)
@@ -813,12 +812,6 @@ public partial class SoftReservationEditViewModel : BaseViewModel
         if (ReservationId is not { } resId)
         {
             await _dialog.ShowErrorAsync(_locale.T("SoftRes_Title"), _locale.T("SoftRes_ToBsNeedSave"), cancellationToken);
-            return;
-        }
-
-        if (Statut == StatutReservation.Annulee)
-        {
-            await _dialog.ShowErrorAsync(_locale.T("SoftRes_Title"), _locale.T("SoftRes_ErrCancelled"), cancellationToken);
             return;
         }
 

@@ -11,6 +11,7 @@ namespace GestionCommerciale.Shared.Database.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // --- Detach FKs that will be renamed ---
             migrationBuilder.DropForeignKey(
                 name: "FK_BonsLivraison_BonsSortie_ReservationId",
                 table: "BonsLivraison");
@@ -23,12 +24,75 @@ namespace GestionCommerciale.Shared.Database.Migrations
                 name: "FK_ReservationServiceLignes_BonsSortie_ReservationId",
                 table: "ReservationServiceLignes");
 
-            migrationBuilder.DropTable(
-                name: "ReservationProduitRetours");
+            migrationBuilder.DropForeignKey(
+                name: "FK_ReservationProduitRetours_ReservationProduitLignes_ReservationProduitLigneId",
+                table: "ReservationProduitRetours");
 
-            migrationBuilder.DropColumn(
-                name: "QuantiteRetournee",
-                table: "ReservationProduitLignes");
+            migrationBuilder.DropForeignKey(
+                name: "FK_ReservationServiceLignes_Services_ServiceId",
+                table: "ReservationServiceLignes");
+
+            migrationBuilder.DropCheckConstraint(
+                name: "CK_ReservationProduitRetours_Etat",
+                table: "ReservationProduitRetours");
+
+            // --- Rename bon-de-sortie line / retour tables (keep data) ---
+            migrationBuilder.RenameTable(
+                name: "ReservationProduitLignes",
+                newName: "BonSortieProduitLignes");
+
+            migrationBuilder.RenameColumn(
+                name: "ReservationId",
+                table: "BonSortieProduitLignes",
+                newName: "BonSortieId");
+
+            migrationBuilder.RenameIndex(
+                name: "IX_ReservationProduitLignes_ReservationId",
+                table: "BonSortieProduitLignes",
+                newName: "IX_BonSortieProduitLignes_BonSortieId");
+
+            migrationBuilder.RenameIndex(
+                name: "IX_ReservationProduitLignes_ProduitId",
+                table: "BonSortieProduitLignes",
+                newName: "IX_BonSortieProduitLignes_ProduitId");
+
+            migrationBuilder.RenameTable(
+                name: "ReservationServiceLignes",
+                newName: "BonSortieServiceLignes");
+
+            migrationBuilder.RenameColumn(
+                name: "ReservationId",
+                table: "BonSortieServiceLignes",
+                newName: "BonSortieId");
+
+            migrationBuilder.RenameIndex(
+                name: "IX_ReservationServiceLignes_ReservationId",
+                table: "BonSortieServiceLignes",
+                newName: "IX_BonSortieServiceLignes_BonSortieId");
+
+            migrationBuilder.RenameIndex(
+                name: "IX_ReservationServiceLignes_ServiceId",
+                table: "BonSortieServiceLignes",
+                newName: "IX_BonSortieServiceLignes_ServiceId");
+
+            migrationBuilder.RenameTable(
+                name: "ReservationProduitRetours",
+                newName: "BonSortieProduitRetours");
+
+            migrationBuilder.RenameColumn(
+                name: "ReservationProduitLigneId",
+                table: "BonSortieProduitRetours",
+                newName: "BonSortieProduitLigneId");
+
+            migrationBuilder.RenameIndex(
+                name: "IX_ReservationProduitRetours_ReservationProduitLigneId",
+                table: "BonSortieProduitRetours",
+                newName: "IX_BonSortieProduitRetours_BonSortieProduitLigneId");
+
+            migrationBuilder.RenameIndex(
+                name: "IX_ReservationProduitRetours_DateRetour",
+                table: "BonSortieProduitRetours",
+                newName: "IX_BonSortieProduitRetours_DateRetour");
 
             migrationBuilder.RenameColumn(
                 name: "ReservationId",
@@ -40,77 +104,53 @@ namespace GestionCommerciale.Shared.Database.Migrations
                 table: "BonsLivraison",
                 newName: "IX_BonsLivraison_BonSortieId");
 
-            migrationBuilder.AddColumn<int>(
-                name: "ReservationId",
-                table: "BonsSortie",
-                type: "INTEGER",
-                nullable: true);
+            migrationBuilder.AddCheckConstraint(
+                name: "CK_BonSortieProduitRetours_Etat",
+                table: "BonSortieProduitRetours",
+                sql: "\"Etat\" IN ('good', 'damaged', 'lost', 'to clean')");
 
-            migrationBuilder.CreateTable(
-                name: "BonSortieProduitLignes",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    BonSortieId = table.Column<int>(type: "INTEGER", nullable: false),
-                    ProduitId = table.Column<int>(type: "INTEGER", nullable: true),
-                    Designation = table.Column<string>(type: "TEXT", nullable: false),
-                    Quantite = table.Column<decimal>(type: "TEXT", nullable: false),
-                    QuantiteRetournee = table.Column<decimal>(type: "TEXT", nullable: false),
-                    PrixUnitaireHT = table.Column<decimal>(type: "TEXT", nullable: false),
-                    Remise = table.Column<decimal>(type: "TEXT", nullable: false),
-                    TauxTVA = table.Column<decimal>(type: "TEXT", nullable: false),
-                    Note = table.Column<string>(type: "TEXT", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    CreatedByUserId = table.Column<int>(type: "INTEGER", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_BonSortieProduitLignes", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_BonSortieProduitLignes_BonsSortie_BonSortieId",
-                        column: x => x.BonSortieId,
-                        principalTable: "BonsSortie",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+            // --- Re-attach FKs for bon de sortie ---
+            migrationBuilder.AddForeignKey(
+                name: "FK_BonsLivraison_BonsSortie_BonSortieId",
+                table: "BonsLivraison",
+                column: "BonSortieId",
+                principalTable: "BonsSortie",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.SetNull);
 
-            migrationBuilder.CreateTable(
-                name: "BonSortieServiceLignes",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    BonSortieId = table.Column<int>(type: "INTEGER", nullable: false),
-                    ServiceId = table.Column<int>(type: "INTEGER", nullable: true),
-                    Designation = table.Column<string>(type: "TEXT", nullable: false),
-                    Quantite = table.Column<decimal>(type: "TEXT", nullable: false),
-                    PrixUnitaireHT = table.Column<decimal>(type: "TEXT", nullable: false),
-                    Remise = table.Column<decimal>(type: "TEXT", nullable: false),
-                    TauxTVA = table.Column<decimal>(type: "TEXT", nullable: false),
-                    Note = table.Column<string>(type: "TEXT", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    CreatedByUserId = table.Column<int>(type: "INTEGER", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_BonSortieServiceLignes", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_BonSortieServiceLignes_BonsSortie_BonSortieId",
-                        column: x => x.BonSortieId,
-                        principalTable: "BonsSortie",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_BonSortieServiceLignes_Services_ServiceId",
-                        column: x => x.ServiceId,
-                        principalTable: "Services",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
+            migrationBuilder.AddForeignKey(
+                name: "FK_BonSortieProduitLignes_BonsSortie_BonSortieId",
+                table: "BonSortieProduitLignes",
+                column: "BonSortieId",
+                principalTable: "BonsSortie",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
 
+            migrationBuilder.AddForeignKey(
+                name: "FK_BonSortieServiceLignes_BonsSortie_BonSortieId",
+                table: "BonSortieServiceLignes",
+                column: "BonSortieId",
+                principalTable: "BonsSortie",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_BonSortieServiceLignes_Services_ServiceId",
+                table: "BonSortieServiceLignes",
+                column: "ServiceId",
+                principalTable: "Services",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_BonSortieProduitRetours_BonSortieProduitLignes_BonSortieProduitLigneId",
+                table: "BonSortieProduitRetours",
+                column: "BonSortieProduitLigneId",
+                principalTable: "BonSortieProduitLignes",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
+
+            // --- Soft-booking Reservation tables (new, empty) ---
             migrationBuilder.CreateTable(
                 name: "Reservations",
                 columns: table => new
@@ -143,15 +183,18 @@ namespace GestionCommerciale.Shared.Database.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "BonSortieProduitRetours",
+                name: "ReservationProduitLignes",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
-                    BonSortieProduitLigneId = table.Column<int>(type: "INTEGER", nullable: false),
-                    DateRetour = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    ReservationId = table.Column<int>(type: "INTEGER", nullable: false),
+                    ProduitId = table.Column<int>(type: "INTEGER", nullable: true),
+                    Designation = table.Column<string>(type: "TEXT", nullable: false),
                     Quantite = table.Column<decimal>(type: "TEXT", nullable: false),
-                    Etat = table.Column<string>(type: "TEXT", maxLength: 32, nullable: false),
+                    PrixUnitaireHT = table.Column<decimal>(type: "TEXT", nullable: false),
+                    Remise = table.Column<decimal>(type: "TEXT", nullable: false),
+                    TauxTVA = table.Column<decimal>(type: "TEXT", nullable: false),
                     Note = table.Column<string>(type: "TEXT", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
@@ -159,50 +202,60 @@ namespace GestionCommerciale.Shared.Database.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_BonSortieProduitRetours", x => x.Id);
-                    table.CheckConstraint("CK_BonSortieProduitRetours_Etat", "\"Etat\" IN ('good', 'damaged', 'lost', 'to clean')");
+                    table.PrimaryKey("PK_ReservationProduitLignes", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_BonSortieProduitRetours_BonSortieProduitLignes_BonSortieProduitLigneId",
-                        column: x => x.BonSortieProduitLigneId,
-                        principalTable: "BonSortieProduitLignes",
+                        name: "FK_ReservationProduitLignes_Reservations_ReservationId",
+                        column: x => x.ReservationId,
+                        principalTable: "Reservations",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
+
+            migrationBuilder.CreateTable(
+                name: "ReservationServiceLignes",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    ReservationId = table.Column<int>(type: "INTEGER", nullable: false),
+                    ServiceId = table.Column<int>(type: "INTEGER", nullable: true),
+                    Designation = table.Column<string>(type: "TEXT", nullable: false),
+                    Quantite = table.Column<decimal>(type: "TEXT", nullable: false),
+                    PrixUnitaireHT = table.Column<decimal>(type: "TEXT", nullable: false),
+                    Remise = table.Column<decimal>(type: "TEXT", nullable: false),
+                    TauxTVA = table.Column<decimal>(type: "TEXT", nullable: false),
+                    Note = table.Column<string>(type: "TEXT", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    CreatedByUserId = table.Column<int>(type: "INTEGER", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ReservationServiceLignes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ReservationServiceLignes_Reservations_ReservationId",
+                        column: x => x.ReservationId,
+                        principalTable: "Reservations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ReservationServiceLignes_Services_ServiceId",
+                        column: x => x.ServiceId,
+                        principalTable: "Services",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.AddColumn<int>(
+                name: "ReservationId",
+                table: "BonsSortie",
+                type: "INTEGER",
+                nullable: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_BonsSortie_ReservationId",
                 table: "BonsSortie",
                 column: "ReservationId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_BonSortieProduitLignes_BonSortieId",
-                table: "BonSortieProduitLignes",
-                column: "BonSortieId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_BonSortieProduitLignes_ProduitId",
-                table: "BonSortieProduitLignes",
-                column: "ProduitId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_BonSortieProduitRetours_BonSortieProduitLigneId",
-                table: "BonSortieProduitRetours",
-                column: "BonSortieProduitLigneId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_BonSortieProduitRetours_DateRetour",
-                table: "BonSortieProduitRetours",
-                column: "DateRetour");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_BonSortieServiceLignes_BonSortieId",
-                table: "BonSortieServiceLignes",
-                column: "BonSortieId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_BonSortieServiceLignes_ServiceId",
-                table: "BonSortieServiceLignes",
-                column: "ServiceId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Reservations_BonSortieId",
@@ -224,13 +277,25 @@ namespace GestionCommerciale.Shared.Database.Migrations
                 table: "Reservations",
                 column: "Statut");
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_BonsLivraison_BonsSortie_BonSortieId",
-                table: "BonsLivraison",
-                column: "BonSortieId",
-                principalTable: "BonsSortie",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.SetNull);
+            migrationBuilder.CreateIndex(
+                name: "IX_ReservationProduitLignes_ProduitId",
+                table: "ReservationProduitLignes",
+                column: "ProduitId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ReservationProduitLignes_ReservationId",
+                table: "ReservationProduitLignes",
+                column: "ReservationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ReservationServiceLignes_ReservationId",
+                table: "ReservationServiceLignes",
+                column: "ReservationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ReservationServiceLignes_ServiceId",
+                table: "ReservationServiceLignes",
+                column: "ServiceId");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_BonsSortie_Reservations_ReservationId",
@@ -239,116 +304,68 @@ namespace GestionCommerciale.Shared.Database.Migrations
                 principalTable: "Reservations",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.SetNull);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_ReservationProduitLignes_Reservations_ReservationId",
-                table: "ReservationProduitLignes",
-                column: "ReservationId",
-                principalTable: "Reservations",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_ReservationServiceLignes_Reservations_ReservationId",
-                table: "ReservationServiceLignes",
-                column: "ReservationId",
-                principalTable: "Reservations",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropForeignKey(
-                name: "FK_BonsLivraison_BonsSortie_BonSortieId",
-                table: "BonsLivraison");
-
-            migrationBuilder.DropForeignKey(
                 name: "FK_BonsSortie_Reservations_ReservationId",
                 table: "BonsSortie");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_ReservationProduitLignes_Reservations_ReservationId",
-                table: "ReservationProduitLignes");
+                name: "FK_BonsLivraison_BonsSortie_BonSortieId",
+                table: "BonsLivraison");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_ReservationServiceLignes_Reservations_ReservationId",
-                table: "ReservationServiceLignes");
+                name: "FK_BonSortieProduitLignes_BonsSortie_BonSortieId",
+                table: "BonSortieProduitLignes");
 
-            migrationBuilder.DropTable(
-                name: "BonSortieProduitRetours");
+            migrationBuilder.DropForeignKey(
+                name: "FK_BonSortieServiceLignes_BonsSortie_BonSortieId",
+                table: "BonSortieServiceLignes");
 
-            migrationBuilder.DropTable(
-                name: "BonSortieServiceLignes");
+            migrationBuilder.DropForeignKey(
+                name: "FK_BonSortieServiceLignes_Services_ServiceId",
+                table: "BonSortieServiceLignes");
 
-            migrationBuilder.DropTable(
-                name: "Reservations");
+            migrationBuilder.DropForeignKey(
+                name: "FK_BonSortieProduitRetours_BonSortieProduitLignes_BonSortieProduitLigneId",
+                table: "BonSortieProduitRetours");
 
-            migrationBuilder.DropTable(
-                name: "BonSortieProduitLignes");
+            migrationBuilder.DropTable(name: "ReservationProduitLignes");
+            migrationBuilder.DropTable(name: "ReservationServiceLignes");
+            migrationBuilder.DropTable(name: "Reservations");
 
-            migrationBuilder.DropIndex(
-                name: "IX_BonsSortie_ReservationId",
-                table: "BonsSortie");
+            migrationBuilder.DropIndex(name: "IX_BonsSortie_ReservationId", table: "BonsSortie");
+            migrationBuilder.DropColumn(name: "ReservationId", table: "BonsSortie");
 
-            migrationBuilder.DropColumn(
-                name: "ReservationId",
-                table: "BonsSortie");
+            migrationBuilder.DropCheckConstraint(
+                name: "CK_BonSortieProduitRetours_Etat",
+                table: "BonSortieProduitRetours");
 
-            migrationBuilder.RenameColumn(
-                name: "BonSortieId",
-                table: "BonsLivraison",
-                newName: "ReservationId");
+            migrationBuilder.RenameTable(name: "BonSortieProduitLignes", newName: "ReservationProduitLignes");
+            migrationBuilder.RenameColumn(name: "BonSortieId", table: "ReservationProduitLignes", newName: "ReservationId");
+            migrationBuilder.RenameIndex(name: "IX_BonSortieProduitLignes_BonSortieId", table: "ReservationProduitLignes", newName: "IX_ReservationProduitLignes_ReservationId");
+            migrationBuilder.RenameIndex(name: "IX_BonSortieProduitLignes_ProduitId", table: "ReservationProduitLignes", newName: "IX_ReservationProduitLignes_ProduitId");
 
-            migrationBuilder.RenameIndex(
-                name: "IX_BonsLivraison_BonSortieId",
-                table: "BonsLivraison",
-                newName: "IX_BonsLivraison_ReservationId");
+            migrationBuilder.RenameTable(name: "BonSortieServiceLignes", newName: "ReservationServiceLignes");
+            migrationBuilder.RenameColumn(name: "BonSortieId", table: "ReservationServiceLignes", newName: "ReservationId");
+            migrationBuilder.RenameIndex(name: "IX_BonSortieServiceLignes_BonSortieId", table: "ReservationServiceLignes", newName: "IX_ReservationServiceLignes_ReservationId");
+            migrationBuilder.RenameIndex(name: "IX_BonSortieServiceLignes_ServiceId", table: "ReservationServiceLignes", newName: "IX_ReservationServiceLignes_ServiceId");
 
-            migrationBuilder.AddColumn<decimal>(
-                name: "QuantiteRetournee",
-                table: "ReservationProduitLignes",
-                type: "TEXT",
-                nullable: false,
-                defaultValue: 0m);
+            migrationBuilder.RenameTable(name: "BonSortieProduitRetours", newName: "ReservationProduitRetours");
+            migrationBuilder.RenameColumn(name: "BonSortieProduitLigneId", table: "ReservationProduitRetours", newName: "ReservationProduitLigneId");
+            migrationBuilder.RenameIndex(name: "IX_BonSortieProduitRetours_BonSortieProduitLigneId", table: "ReservationProduitRetours", newName: "IX_ReservationProduitRetours_ReservationProduitLigneId");
+            migrationBuilder.RenameIndex(name: "IX_BonSortieProduitRetours_DateRetour", table: "ReservationProduitRetours", newName: "IX_ReservationProduitRetours_DateRetour");
 
-            migrationBuilder.CreateTable(
-                name: "ReservationProduitRetours",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    ReservationProduitLigneId = table.Column<int>(type: "INTEGER", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    CreatedByUserId = table.Column<int>(type: "INTEGER", nullable: true),
-                    DateRetour = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    Etat = table.Column<string>(type: "TEXT", maxLength: 32, nullable: false),
-                    Note = table.Column<string>(type: "TEXT", nullable: false),
-                    Quantite = table.Column<decimal>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ReservationProduitRetours", x => x.Id);
-                    table.CheckConstraint("CK_ReservationProduitRetours_Etat", "\"Etat\" IN ('good', 'damaged', 'lost', 'to clean')");
-                    table.ForeignKey(
-                        name: "FK_ReservationProduitRetours_ReservationProduitLignes_ReservationProduitLigneId",
-                        column: x => x.ReservationProduitLigneId,
-                        principalTable: "ReservationProduitLignes",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+            migrationBuilder.RenameColumn(name: "BonSortieId", table: "BonsLivraison", newName: "ReservationId");
+            migrationBuilder.RenameIndex(name: "IX_BonsLivraison_BonSortieId", table: "BonsLivraison", newName: "IX_BonsLivraison_ReservationId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_ReservationProduitRetours_DateRetour",
+            migrationBuilder.AddCheckConstraint(
+                name: "CK_ReservationProduitRetours_Etat",
                 table: "ReservationProduitRetours",
-                column: "DateRetour");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ReservationProduitRetours_ReservationProduitLigneId",
-                table: "ReservationProduitRetours",
-                column: "ReservationProduitLigneId");
+                sql: "\"Etat\" IN ('good', 'damaged', 'lost', 'to clean')");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_BonsLivraison_BonsSortie_ReservationId",
@@ -371,6 +388,22 @@ namespace GestionCommerciale.Shared.Database.Migrations
                 table: "ReservationServiceLignes",
                 column: "ReservationId",
                 principalTable: "BonsSortie",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_ReservationServiceLignes_Services_ServiceId",
+                table: "ReservationServiceLignes",
+                column: "ServiceId",
+                principalTable: "Services",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_ReservationProduitRetours_ReservationProduitLignes_ReservationProduitLigneId",
+                table: "ReservationProduitRetours",
+                column: "ReservationProduitLigneId",
+                principalTable: "ReservationProduitLignes",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Cascade);
         }

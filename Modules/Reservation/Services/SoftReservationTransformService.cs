@@ -34,11 +34,7 @@ public sealed class SoftReservationTransformService : ISoftReservationTransformS
             .Include(r => r.ProduitLignes)
             .Include(r => r.ServiceLignes)
             .FirstAsync(r => r.Id == reservationId, cancellationToken);
-
-        if (res.Statut == StatutReservation.Annulee)
-            throw new InvalidOperationException("Cannot transform a cancelled reservation.");
-
-        if (res.BonSortieId is { } existingId)
+if (res.BonSortieId is { } existingId)
         {
             var exists = await db.BonsSortie.AsNoTracking().AnyAsync(b => b.Id == existingId, cancellationToken);
             if (exists)
