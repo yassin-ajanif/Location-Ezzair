@@ -169,6 +169,7 @@ internal static class UiTranslationExtras
         ["Lbl_PrixAchatHt"] = ("Prix achat HT", "سعر الشراء بدون ضريبة"),
         ["Lbl_PrixVenteHt"] = ("Prix vente HT", "سعر البيع بدون ضريبة"),
         ["Lbl_PrixLocationHt"] = ("Prix location HT", "سعر الكراء بدون ضريبة"),
+        ["Lbl_PrixLocationTtc"] = ("Prix location TTC", "سعر الكراء شامل الضريبة"),
         ["Lbl_TvaPctField"] = ("TVA %", "الضريبة %"),
         ["Lbl_PrixAchatTtc"] = ("Prix achat TTC", "سعر الشراء شامل الضريبة"),
         ["Lbl_PrixVenteTtc"] = ("Prix vente TTC", "سعر البيع شامل الضريبة"),

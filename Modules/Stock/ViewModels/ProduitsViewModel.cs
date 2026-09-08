@@ -67,6 +67,7 @@ public partial class ProduitsViewModel : BaseViewModel
     [ObservableProperty] private string _lblPrixAchatTtc = string.Empty;
     [ObservableProperty] private string _lblPrixVenteTtc = string.Empty;
     [ObservableProperty] private string _lblPrixLocation = string.Empty;
+    [ObservableProperty] private string _lblPrixLocationTtc = string.Empty;
     [ObservableProperty] private string _lblTva = string.Empty;
     [ObservableProperty] private string _lblStockMin = string.Empty;
     [ObservableProperty] private string _lblPhoto = string.Empty;
@@ -103,6 +104,7 @@ public partial class ProduitsViewModel : BaseViewModel
         LblPrixAchatTtc = _locale.T("Lbl_PrixAchatTtc");
         LblPrixVenteTtc = _locale.T("Lbl_PrixVenteTtc");
         LblPrixLocation = _locale.T("Lbl_PrixLocationHt");
+        LblPrixLocationTtc = _locale.T("Lbl_PrixLocationTtc");
         LblTva = _locale.T("Lbl_TvaPctField");
         LblStockMin = _locale.T("Lbl_StockMinField");
         LblPhoto = _locale.T("Lbl_ProductPhoto");
@@ -151,6 +153,7 @@ public partial class ProduitsViewModel : BaseViewModel
     [ObservableProperty] private decimal _ficheTauxTva = 20;
     [ObservableProperty] private decimal _fichePrixAchatTtc;
     [ObservableProperty] private decimal _fichePrixVenteTtc;
+    [ObservableProperty] private decimal _fichePrixLocationTtc;
 
     private bool _syncingTtc;
 
@@ -170,6 +173,16 @@ public partial class ProduitsViewModel : BaseViewModel
         {
             _syncingTtc = true;
             FichePrixVenteTtc = value * (1 + FicheTauxTva / 100m);
+            _syncingTtc = false;
+        }
+    }
+
+    partial void OnFichePrixLocationHtChanged(decimal value)
+    {
+        if (!_syncingTtc)
+        {
+            _syncingTtc = true;
+            FichePrixLocationTtc = value * (1 + FicheTauxTva / 100m);
             _syncingTtc = false;
         }
     }
@@ -194,6 +207,16 @@ public partial class ProduitsViewModel : BaseViewModel
         }
     }
 
+    partial void OnFichePrixLocationTtcChanged(decimal value)
+    {
+        if (!_syncingTtc && FicheTauxTva > 0)
+        {
+            _syncingTtc = true;
+            FichePrixLocationHt = value / (1 + FicheTauxTva / 100m);
+            _syncingTtc = false;
+        }
+    }
+
     partial void OnFicheTauxTvaChanged(decimal value)
     {
         if (!_syncingTtc)
@@ -201,6 +224,7 @@ public partial class ProduitsViewModel : BaseViewModel
             _syncingTtc = true;
             FichePrixAchatTtc = FichePrixAchatHt * (1 + value / 100m);
             FichePrixVenteTtc = FichePrixVenteHt * (1 + value / 100m);
+            FichePrixLocationTtc = FichePrixLocationHt * (1 + value / 100m);
             _syncingTtc = false;
         }
     }
