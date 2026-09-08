@@ -722,7 +722,8 @@ public partial class ReservationEditViewModel : BaseViewModel
 
         var periodEnd = DateRetourEffective?.Date ?? DateFinPrevue.Date;
         var conflicts = await _availability.CheckAsync(
-            ReservationId,
+            excludeBonSortieId: ReservationId,
+            excludeSoftReservationId: null,
             DateDebut.Date,
             periodEnd,
             ProduitLignes

@@ -64,8 +64,11 @@ public sealed record ProductAvailabilityMonthResult(
 
 public interface IReservationAvailabilityService
 {
+    /// <param name="excludeBonSortieId">Bon de sortie being edited.</param>
+    /// <param name="excludeSoftReservationId">Soft reservation being edited.</param>
     Task<IReadOnlyList<ReservationAvailabilityConflict>> CheckAsync(
-        int? excludeReservationId,
+        int? excludeBonSortieId,
+        int? excludeSoftReservationId,
         DateTime dateDebut,
         DateTime dateFin,
         IEnumerable<ReservationAvailabilityLineRequest> lines,

@@ -14,7 +14,8 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
     }
 
     public async Task<IReadOnlyList<ReservationAvailabilityConflict>> CheckAsync(
-        int? excludeReservationId,
+        int? excludeBonSortieId,
+        int? excludeSoftReservationId,
         DateTime dateDebut,
         DateTime dateFin,
         IEnumerable<ReservationAvailabilityLineRequest> lines,
@@ -46,7 +47,7 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
             .Select(p => new { p.Id, p.Reference, p.Designation, p.StockActuel })
             .ToDictionaryAsync(p => p.Id, cancellationToken);
 
-        var allOpenLines = await db.BonSortieProduitLignes.AsNoTracking()
+        var allOpenBsLines = await db.BonSortieProduitLignes.AsNoTracking()
             .Where(l => l.ProduitId != null && produitIds.Contains(l.ProduitId.Value))
             .Where(l => l.Quantite > l.QuantiteRetournee)
             .Select(l => new
@@ -61,12 +62,12 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
         foreach (var pid in produitIds)
         {
             var stock = produits.TryGetValue(pid, out var p) ? p.StockActuel : 0m;
-            var outQty = allOpenLines.Where(l => l.ProduitId == pid).Sum(l => l.Encore);
+            var outQty = allOpenBsLines.Where(l => l.ProduitId == pid).Sum(l => l.Encore);
             ownedByProduit[pid] = stock + outQty;
         }
 
-        var overlapping = await db.BonsSortie.AsNoTracking()
-            .Where(r => excludeReservationId == null || r.Id != excludeReservationId.Value)
+        var overlappingBs = await db.BonsSortie.AsNoTracking()
+            .Where(r => excludeBonSortieId == null || r.Id != excludeBonSortieId.Value)
             .Select(r => new
             {
                 r.Id,
@@ -77,39 +78,77 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
             })
             .ToListAsync(cancellationToken);
 
-        overlapping = overlapping
+        overlappingBs = overlappingBs
             .Where(r => PeriodsOverlap(periodStart, periodEnd, r.DateDebut.Date, r.DateFin.Date))
             .ToList();
 
-        var overlapIds = overlapping.Select(r => r.Id).ToHashSet();
-        var clientIds = overlapping.Select(r => r.ClientId).Distinct().ToList();
+        var overlapBsIds = overlappingBs.Select(r => r.Id).ToHashSet();
+        var bsById = overlappingBs.ToDictionary(r => r.Id);
+        var bsOpenOnOverlap = allOpenBsLines
+            .Where(l => overlapBsIds.Contains(l.BonSortieId))
+            .ToList();
+
+        var softHeaders = await db.Reservations.AsNoTracking()
+            .Where(r => r.Statut == StatutReservation.Confirmee)
+            .Where(r => excludeSoftReservationId == null || r.Id != excludeSoftReservationId.Value)
+            .Select(r => new
+            {
+                r.Id,
+                r.Numero,
+                r.ClientId,
+                r.DateDebut,
+                DateFin = r.DateFinPrevue
+            })
+            .ToListAsync(cancellationToken);
+
+        softHeaders = softHeaders
+            .Where(r => PeriodsOverlap(periodStart, periodEnd, r.DateDebut.Date, r.DateFin.Date))
+            .ToList();
+
+        var softOverlapIds = softHeaders.Select(r => r.Id).ToHashSet();
+        var softById = softHeaders.ToDictionary(r => r.Id);
+
+        var softLinesOnOverlap = softOverlapIds.Count == 0
+            ? new List<(int SoftReservationId, int ProduitId, decimal Encore)>()
+            : (await db.ReservationProduitLignes.AsNoTracking()
+                .Where(l => softOverlapIds.Contains(l.ReservationId))
+                .Where(l => l.ProduitId != null && produitIds.Contains(l.ProduitId.Value))
+                .Where(l => l.Quantite > 0)
+                .Select(l => new { SoftReservationId = l.ReservationId, ProduitId = l.ProduitId!.Value, Encore = l.Quantite })
+                .ToListAsync(cancellationToken))
+            .Select(l => (l.SoftReservationId, l.ProduitId, l.Encore))
+            .ToList();
+
+        var clientIds = overlappingBs.Select(r => r.ClientId)
+            .Concat(softHeaders.Select(r => r.ClientId))
+            .Distinct()
+            .ToList();
         var clientNames = clientIds.Count == 0
             ? new Dictionary<int, string>()
             : await db.Tiers.AsNoTracking()
                 .Where(t => clientIds.Contains(t.Id))
                 .ToDictionaryAsync(t => t.Id, t => t.Nom, cancellationToken);
 
-        var overlapById = overlapping.ToDictionary(r => r.Id);
-        var otherOpenOnOverlap = allOpenLines
-            .Where(l => overlapIds.Contains(l.BonSortieId))
-            .ToList();
-
         var conflicts = new List<ReservationAvailabilityConflict>();
         foreach (var req in requested)
         {
-            var deja = otherOpenOnOverlap.Where(l => l.ProduitId == req.ProduitId).Sum(l => l.Encore);
+            var dejaBs = bsOpenOnOverlap.Where(l => l.ProduitId == req.ProduitId).Sum(l => l.Encore);
+            var dejaSoft = softLinesOnOverlap.Where(l => l.ProduitId == req.ProduitId).Sum(l => l.Encore);
+            var deja = dejaBs + dejaSoft;
             var owned = ownedByProduit.GetValueOrDefault(req.ProduitId);
             var disponible = owned - deja;
             if (req.Demande <= disponible)
                 continue;
 
             produits.TryGetValue(req.ProduitId, out var prod);
-            var sources = otherOpenOnOverlap
+
+            var sources = new List<ReservationAvailabilityConflictSource>();
+            sources.AddRange(bsOpenOnOverlap
                 .Where(l => l.ProduitId == req.ProduitId)
                 .GroupBy(l => l.BonSortieId)
                 .Select(g =>
                 {
-                    var res = overlapById[g.Key];
+                    var res = bsById[g.Key];
                     clientNames.TryGetValue(res.ClientId, out var nom);
                     return new ReservationAvailabilityConflictSource(
                         res.Numero,
@@ -117,10 +156,23 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
                         res.DateDebut.Date,
                         res.DateFin.Date,
                         g.Sum(x => x.Encore));
-                })
-                .OrderBy(s => s.DateDebut)
-                .ThenBy(s => s.Numero)
-                .ToList();
+                }));
+            sources.AddRange(softLinesOnOverlap
+                .Where(l => l.ProduitId == req.ProduitId)
+                .GroupBy(l => l.SoftReservationId)
+                .Select(g =>
+                {
+                    var res = softById[g.Key];
+                    clientNames.TryGetValue(res.ClientId, out var nom);
+                    return new ReservationAvailabilityConflictSource(
+                        res.Numero,
+                        string.IsNullOrWhiteSpace(nom) ? $"#{res.ClientId}" : nom,
+                        res.DateDebut.Date,
+                        res.DateFin.Date,
+                        g.Sum(x => x.Encore));
+                }));
+
+            sources = sources.OrderBy(s => s.DateDebut).ThenBy(s => s.Numero).ToList();
 
             conflicts.Add(new ReservationAvailabilityConflict(
                 req.ProduitId,

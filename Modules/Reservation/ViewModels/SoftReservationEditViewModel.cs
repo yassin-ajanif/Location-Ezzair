@@ -641,7 +641,8 @@ public partial class SoftReservationEditViewModel : BaseViewModel
             (periodStart, periodEnd) = (periodEnd, periodStart);
 
         var conflicts = await _availability.CheckAsync(
-            null,
+            excludeBonSortieId: null,
+            excludeSoftReservationId: ReservationId,
             periodStart,
             periodEnd,
             ProduitLignes
