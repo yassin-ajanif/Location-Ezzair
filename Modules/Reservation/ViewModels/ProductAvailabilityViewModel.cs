@@ -58,6 +58,7 @@ public partial class ProductAvailabilityViewModel : BaseViewModel
 
     public ObservableCollection<DocumentCatalogItem> SearchResults { get; } = [];
     public ObservableCollection<AvailabilityDayCell> Days { get; } = [];
+    public ObservableCollection<AvailabilityWeekRow> Weeks { get; } = [];
     public ObservableCollection<string> WeekdayHeaders { get; } = [];
     public ObservableCollection<AvailabilityFreeWindowRow> FreeWindows { get; } = [];
     public ObservableCollection<AvailabilityBookingRow> Bookings { get; } = [];
@@ -166,6 +167,7 @@ public partial class ProductAvailabilityViewModel : BaseViewModel
     private async Task LoadMonthAsync(CancellationToken cancellationToken)
     {
         Days.Clear();
+        Weeks.Clear();
         FreeWindows.Clear();
         Bookings.Clear();
         StockTotalLabel = string.Empty;
@@ -193,6 +195,18 @@ public partial class ProductAvailabilityViewModel : BaseViewModel
         foreach (var d in result.Days)
             Days.Add(AvailabilityDayCell.From(d, QtyNeeded, nextAvailable));
 
+        for (var w = 0; w < 6; w++)
+        {
+            var week = new AvailabilityWeekRow();
+            for (var i = 0; i < 7; i++)
+            {
+                var idx = w * 7 + i;
+                if (idx < Days.Count)
+                    week.Days.Add(Days[idx]);
+            }
+            Weeks.Add(week);
+        }
+
         foreach (var w in result.FreeWindows)
             FreeWindows.Add(new AvailabilityFreeWindowRow(
                 _locale.Tf("Avail_FreeWindowFmt", w.DateDebut, w.DateFin, w.AvailableMin)));
@@ -207,7 +221,12 @@ public partial class ProductAvailabilityViewModel : BaseViewModel
     }
 }
 
-public sealed class AvailabilityDayCell
+public sealed class AvailabilityWeekRow
+{
+    public ObservableCollection<AvailabilityDayCell> Days { get; } = [];
+}
+
+public partial class AvailabilityDayCell : ObservableObject
 {
     private static readonly IBrush OutsideBg = Brush.Parse("#F3F0EA");
     private static readonly IBrush FreeBg = Brush.Parse("#DCFCE7");
@@ -224,7 +243,9 @@ public sealed class AvailabilityDayCell
 
     public DateTime Date { get; }
     public string DayNumber { get; }
-    public string AvailText { get; }
+    public string RestantLine { get; }
+    public string SortieLine { get; }
+    public string ReserveLine { get; }
     public IBrush Background { get; }
     public IBrush BorderBrush { get; }
     public IBrush Foreground { get; }
@@ -233,10 +254,21 @@ public sealed class AvailabilityDayCell
     public double Opacity { get; }
     public Thickness CellBorderThickness { get; }
 
+    [ObservableProperty] private bool _isExpanded;
+
+    public string ExpandArrow => IsExpanded ? "▴" : "▾";
+
+    partial void OnIsExpandedChanged(bool value) => OnPropertyChanged(nameof(ExpandArrow));
+
+    [RelayCommand]
+    private void ToggleDetails() => IsExpanded = !IsExpanded;
+
     private AvailabilityDayCell(
         DateTime date,
         string dayNumber,
-        string availText,
+        string restantLine,
+        string sortieLine,
+        string reserveLine,
         IBrush background,
         IBrush borderBrush,
         IBrush foreground,
@@ -246,7 +278,9 @@ public sealed class AvailabilityDayCell
     {
         Date = date;
         DayNumber = dayNumber;
-        AvailText = availText;
+        RestantLine = restantLine;
+        SortieLine = sortieLine;
+        ReserveLine = reserveLine;
         Background = background;
         BorderBrush = borderBrush;
         Foreground = foreground;
@@ -281,20 +315,17 @@ public sealed class AvailabilityDayCell
                 break;
         }
 
-        // First day you can order the qty: indigo border (same family as Totaux chips).
         if (isNext)
             border = NextBorder;
         else if (isToday && day.IsCurrentMonth)
             border = TodayBorder;
 
-        var availText = day.IsCurrentMonth
-            ? day.Available.ToString("N0")
-            : string.Empty;
-
         return new AvailabilityDayCell(
             day.Date,
             day.Date.Day.ToString(),
-            availText,
+            $"{day.Available:N0} dispo",
+            $"{day.BonSortieBooked:N0} sortie",
+            $"{day.SoftBooked:N0} réservé",
             bg,
             border,
             fg,

@@ -34,6 +34,8 @@ public sealed record ProductAvailabilityDay(
     DateTime Date,
     bool IsCurrentMonth,
     decimal Booked,
+    decimal SoftBooked,
+    decimal BonSortieBooked,
     decimal Available,
     decimal StockTotal,
     ProductAvailabilityDayLevel Level);

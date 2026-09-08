@@ -85,30 +85,59 @@
               </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <ItemsControl Grid.Row="1" ItemsSource="{Binding Days}">
-              <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                  <UniformGrid Columns="7" Rows="6"/>
-                </ItemsPanelTemplate>
-              </ItemsControl.ItemsPanel>
-              <ItemsControl.ItemTemplate>
-                <DataTemplate DataType="vm:AvailabilityDayCell">
-                  <Border Margin="3" Padding="6,4" CornerRadius="8" MinHeight="64"
-                          Background="{Binding Background}"
-                          BorderBrush="{Binding BorderBrush}"
-                          BorderThickness="{Binding CellBorderThickness}"
-                          Opacity="{Binding Opacity}">
-                    <StackPanel>
-                      <TextBlock Text="{Binding DayNumber}" FontWeight="SemiBold" FontSize="13"
-                                 Foreground="{Binding Foreground}"/>
-                      <TextBlock Text="{Binding AvailText}" FontSize="12" FontWeight="Bold"
-                                 Foreground="{Binding Foreground}" Margin="0,4,0,0"
-                                 IsVisible="{Binding IsCurrentMonth}"/>
-                    </StackPanel>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <!-- One UniformGrid per week so an expanded day can grow that row only. -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+              <ItemsControl ItemsSource="{Binding Weeks}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Spacing="0"/>
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate DataType="vm:AvailabilityWeekRow">
+                    <ItemsControl ItemsSource="{Binding Days}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <UniformGrid Columns="7"/>
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="vm:AvailabilityDayCell">
+                          <Border Margin="3" Padding="6,5" CornerRadius="8" MinHeight="52"
+                                  VerticalAlignment="Stretch"
+                                  Background="{Binding Background}"
+                                  BorderBrush="{Binding BorderBrush}"
+                                  BorderThickness="{Binding CellBorderThickness}"
+                                  Opacity="{Binding Opacity}">
+                            <StackPanel Spacing="2">
+                              <DockPanel>
+                                <Button DockPanel.Dock="Right"
+                                        Content="{Binding ExpandArrow}"
+                                        Command="{Binding ToggleDetailsCommand}"
+                                        IsVisible="{Binding IsCurrentMonth}"
+                                        Padding="4,0" MinWidth="22" MinHeight="22"
+                                        Background="Transparent" BorderThickness="0"
+                                        FontSize="12" VerticalAlignment="Top"
+                                        HorizontalContentAlignment="Center"/>
+                                <TextBlock Text="{Binding DayNumber}" FontWeight="SemiBold" FontSize="13"
+                                           Foreground="{Binding Foreground}" VerticalAlignment="Center"/>
+                              </DockPanel>
+                              <StackPanel Spacing="3" IsVisible="{Binding IsCurrentMonth}" Margin="0,2,0,0">
+                                <TextBlock Text="{Binding RestantLine}" FontSize="12" Foreground="#166534"/>
+                                <StackPanel Spacing="3" IsVisible="{Binding IsExpanded}">
+                                  <TextBlock Text="{Binding SortieLine}" FontSize="12" Foreground="#991B1B"/>
+                                  <TextBlock Text="{Binding ReserveLine}" FontSize="12" Foreground="#92400E"/>
+                                </StackPanel>
+                              </StackPanel>
+                            </StackPanel>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
           </Grid>
         </DockPanel>
       </Border>

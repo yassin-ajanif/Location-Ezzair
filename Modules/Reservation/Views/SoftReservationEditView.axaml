@@ -37,6 +37,7 @@
                         SelectedItem="{Binding SelectedStatutOption}"
                         MinWidth="140"
                         IsEnabled="{Binding CanEditStatut}"
+                        IsVisible="{Binding CanEditStatut}"
                         VerticalAlignment="Center">
                 <ComboBox.ItemTemplate>
                   <DataTemplate DataType="vm:SoftReservationStatutOption">

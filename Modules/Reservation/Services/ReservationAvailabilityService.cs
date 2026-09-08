@@ -1,3 +1,4 @@
+using GestionCommerciale.Modules.Reservation.Models;
 using GestionCommerciale.Shared.Database;
 using Microsoft.EntityFrameworkCore;
 
@@ -172,13 +173,31 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
                 r.ClientId,
                 r.DateDebut,
                 DateFin = r.DateRetourEffective ?? r.DateFinPrevue,
-                Encore = l.Quantite - l.QuantiteRetournee
+                Encore = l.Quantite - l.QuantiteRetournee,
+                IsSoft = false
+            }).ToListAsync(cancellationToken);
+
+        var softLines = await (
+            from l in db.ReservationProduitLignes.AsNoTracking()
+            join r in db.Reservations.AsNoTracking() on l.ReservationId equals r.Id
+            where r.Statut == StatutReservation.Confirmee
+                  && l.ProduitId == produitId
+                  && l.Quantite > 0
+            select new
+            {
+                r.Id,
+                r.Numero,
+                r.ClientId,
+                r.DateDebut,
+                DateFin = r.DateFinPrevue,
+                Encore = l.Quantite,
+                IsSoft = true
             }).ToListAsync(cancellationToken);
 
         var owned = produit.StockActuel + openLines.Sum(l => l.Encore);
 
-        // Aggregate bookings that touch the visible grid.
         var relevant = openLines
+            .Concat(softLines)
             .Where(l => PeriodsOverlap(gridStart, gridEnd, l.DateDebut.Date, l.DateFin.Date))
             .ToList();
 
@@ -189,17 +208,19 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
                 .Where(t => clientIds.Contains(t.Id))
                 .ToDictionaryAsync(t => t.Id, t => t.Nom, cancellationToken);
 
-        var bookedByDay = new Dictionary<DateTime, decimal>();
+        var softByDay = new Dictionary<DateTime, decimal>();
+        var bsByDay = new Dictionary<DateTime, decimal>();
         foreach (var b in relevant)
         {
             var start = b.DateDebut.Date;
             var end = b.DateFin.Date;
             if (end < start) (start, end) = (end, start);
+            var target = b.IsSoft ? softByDay : bsByDay;
             for (var d = start; d <= end; d = d.AddDays(1))
             {
                 if (d < gridStart || d > gridEnd) continue;
-                bookedByDay.TryGetValue(d, out var sum);
-                bookedByDay[d] = sum + b.Encore;
+                target.TryGetValue(d, out var sum);
+                target[d] = sum + b.Encore;
             }
         }
 
@@ -208,7 +229,9 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
         {
             var date = gridStart.AddDays(i);
             var inMonth = date.Month == monthStart.Month;
-            bookedByDay.TryGetValue(date, out var booked);
+            softByDay.TryGetValue(date, out var softBooked);
+            bsByDay.TryGetValue(date, out var bsBooked);
+            var booked = softBooked + bsBooked;
             var available = Math.Max(0, owned - booked);
             ProductAvailabilityDayLevel level;
             if (!inMonth)
@@ -220,13 +243,14 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
             else
                 level = ProductAvailabilityDayLevel.Full;
 
-            days.Add(new ProductAvailabilityDay(date, inMonth, booked, available, owned, level));
+            days.Add(new ProductAvailabilityDay(
+                date, inMonth, booked, softBooked, bsBooked, available, owned, level));
         }
 
         var today = DateTime.Today;
         var upcomingBookings = relevant
             .Where(l => l.DateFin.Date >= today)
-            .GroupBy(l => l.Id)
+            .GroupBy(l => (l.IsSoft, l.Id, l.Numero))
             .Select(g =>
             {
                 var first = g.First();
