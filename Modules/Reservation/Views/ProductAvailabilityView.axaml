@@ -123,10 +123,22 @@
                                            Foreground="{Binding Foreground}" VerticalAlignment="Center"/>
                               </DockPanel>
                               <StackPanel Spacing="3" IsVisible="{Binding IsCurrentMonth}" Margin="0,2,0,0">
-                                <TextBlock Text="{Binding RestantLine}" FontSize="12" Foreground="#166534"/>
+                                <Border Padding="5,2" CornerRadius="4" HorizontalAlignment="Left"
+                                        Background="#DCFCE7" BorderBrush="#86EFAC" BorderThickness="1">
+                                  <TextBlock Text="{Binding RestantLine}" FontSize="10" FontWeight="Bold"
+                                             Foreground="#166534"/>
+                                </Border>
                                 <StackPanel Spacing="3" IsVisible="{Binding IsExpanded}">
-                                  <TextBlock Text="{Binding SortieLine}" FontSize="12" Foreground="#991B1B"/>
-                                  <TextBlock Text="{Binding ReserveLine}" FontSize="12" Foreground="#92400E"/>
+                                  <Border Padding="5,2" CornerRadius="4" HorizontalAlignment="Left"
+                                          Background="#FEE2E2" BorderBrush="#FECACA" BorderThickness="1">
+                                    <TextBlock Text="{Binding SortieLine}" FontSize="10" FontWeight="Bold"
+                                               Foreground="#991B1B"/>
+                                  </Border>
+                                  <Border Padding="5,2" CornerRadius="4" HorizontalAlignment="Left"
+                                          Background="#FFEDD5" BorderBrush="#FB923C" BorderThickness="1">
+                                    <TextBlock Text="{Binding ReserveLine}" FontSize="10" FontWeight="Bold"
+                                               Foreground="#9A3412"/>
+                                  </Border>
                                 </StackPanel>
                               </StackPanel>
                             </StackPanel>
