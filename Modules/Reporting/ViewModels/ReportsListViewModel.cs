@@ -92,12 +92,14 @@ public partial class ReportsListViewModel : BaseViewModel
     [ObservableProperty] private string _lblStockValTtcLabel = string.Empty;
     [ObservableProperty] private string _lblStockValHt = string.Empty;
     [ObservableProperty] private string _lblStockValTtc = string.Empty;
+    [ObservableProperty] private string _lblProfitChargesTotalRevenue = string.Empty;
     [ObservableProperty] private string _lblProfitChargesTotalMargin = string.Empty;
     [ObservableProperty] private string _lblProfitChargesTotalPurchases = string.Empty;
     [ObservableProperty] private string _lblProfitChargesTotalAvoirsFournisseur = string.Empty;
     [ObservableProperty] private string _lblProfitChargesTotalCharges = string.Empty;
     [ObservableProperty] private string _lblProfitChargesNetResult = string.Empty;
     [ObservableProperty] private bool _isNetPositive = true;
+    [ObservableProperty] private string _lblProfitChargesRevenueLabel = string.Empty;
     [ObservableProperty] private string _lblProfitChargesMarginLabel = string.Empty;
     [ObservableProperty] private string _lblProfitChargesPurchasesLabel = string.Empty;
     [ObservableProperty] private string _lblProfitChargesAvoirsFournisseurLabel = string.Empty;
@@ -119,6 +121,7 @@ public partial class ReportsListViewModel : BaseViewModel
     [ObservableProperty] private string _lblZakatBase = string.Empty;
     [ObservableProperty] private string _lblZakatAmount = string.Empty;
     [ObservableProperty] private bool _showPagination;
+    [ObservableProperty] private bool _isProfitFilterRevenueActive;
     [ObservableProperty] private bool _isProfitFilterMarginActive;
     [ObservableProperty] private bool _isProfitFilterPurchasesActive;
     [ObservableProperty] private bool _isProfitFilterAvoirsFournisseurActive;
@@ -166,6 +169,7 @@ public partial class ReportsListViewModel : BaseViewModel
         LblSaleByCustomerLabelProfit = _locale.T("Reports_LblTotalProfit");
         LblStockValHtLabel = _locale.T("Reports_LblStockValHt");
         LblStockValTtcLabel = _locale.T("Reports_LblStockValTtc");
+        LblProfitChargesRevenueLabel = _locale.T("Reports_LblTotalRevenue");
         LblProfitChargesMarginLabel = _locale.T("Reports_LblTotalSalesMargin");
         LblProfitChargesPurchasesLabel = _locale.T("Reports_LblTotalPurchases");
         LblProfitChargesAvoirsFournisseurLabel = _locale.T("Reports_LblTotalAvoirsFournisseur");
@@ -343,15 +347,19 @@ public partial class ReportsListViewModel : BaseViewModel
         var result = await Task.Run(() => _reportService.GetProfitChargesAsync(from, to, ct), ct);
         _allProfitCharges = result.Rows;
         var dev = result.Devise;
+        LblProfitChargesTotalRevenue = $"+{result.TotalRevenue:N2} {dev}";
         LblProfitChargesTotalMargin = $"+{result.TotalSalesMargin:N2} {dev}";
-        LblProfitChargesTotalPurchases = $"-{result.TotalPurchases:N2} {dev}";
         LblProfitChargesTotalAvoirsFournisseur = $"+{result.TotalAvoirsFournisseur:N2} {dev}";
+        LblProfitChargesTotalPurchases = $"-{result.TotalPurchases:N2} {dev}";
         LblProfitChargesTotalCharges = $"-{result.TotalCharges:N2} {dev}";
         var netSign = result.NetResult >= 0 ? "+" : "";
         LblProfitChargesNetResult = $"{netSign}{result.NetResult:N2} {dev}";
         IsNetPositive = result.NetResult >= 0;
         ApplyProfitFilter(_profitFilterKind);
     }
+
+    [RelayCommand]
+    private void FilterProfitRevenue() => ToggleProfitFilter(ReportProfitChargeKind.Revenue);
 
     [RelayCommand]
     private void FilterProfitMargin() => ToggleProfitFilter(ReportProfitChargeKind.SaleMargin);
@@ -379,15 +387,21 @@ public partial class ReportsListViewModel : BaseViewModel
     private void ApplyProfitFilter(ReportProfitChargeKind? kind)
     {
         _profitFilterKind = kind;
+        IsProfitFilterRevenueActive = kind == ReportProfitChargeKind.Revenue;
         IsProfitFilterMarginActive = kind == ReportProfitChargeKind.SaleMargin;
         IsProfitFilterPurchasesActive = kind == ReportProfitChargeKind.Purchase;
         IsProfitFilterAvoirsFournisseurActive = kind == ReportProfitChargeKind.AvoirFournisseur;
         IsProfitFilterChargesActive = kind == ReportProfitChargeKind.Charge;
         IsProfitFilterAllActive = kind == null;
 
-        _filteredProfitCharges = kind == null
-            ? _allProfitCharges
-            : _allProfitCharges.Where(r => r.Kind == kind).ToList();
+        _filteredProfitCharges = kind switch
+        {
+            null => _allProfitCharges,
+            // Revenue & margin both come from facture rows
+            ReportProfitChargeKind.Revenue or ReportProfitChargeKind.SaleMargin
+                => _allProfitCharges.Where(r => r.Kind == ReportProfitChargeKind.SaleMargin).ToList(),
+            _ => _allProfitCharges.Where(r => r.Kind == kind).ToList()
+        };
 
         FinishPagedLoad(_filteredProfitCharges.Count);
     }
@@ -536,9 +550,10 @@ public partial class ReportsListViewModel : BaseViewModel
                     _filteredProfitCharges.Select(r => (IReadOnlyList<string>)
                         [r.TypeLabel, r.RefLibelle, r.LblDate, r.LblMontantHt, r.LblAmount]).ToList(),
                     [
+                        new(LblProfitChargesRevenueLabel, LblProfitChargesTotalRevenue),
                         new(LblProfitChargesMarginLabel, LblProfitChargesTotalMargin),
-                        new(LblProfitChargesPurchasesLabel, LblProfitChargesTotalPurchases),
                         new(LblProfitChargesAvoirsFournisseurLabel, LblProfitChargesTotalAvoirsFournisseur),
+                        new(LblProfitChargesPurchasesLabel, LblProfitChargesTotalPurchases),
                         new(LblProfitChargesChargesLabel, LblProfitChargesTotalCharges),
                         new(LblProfitChargesNetLabel, LblProfitChargesNetResult)
                     ]);

@@ -21,6 +21,9 @@ public partial class ReportsListView : UserControl
 
         switch (border.Tag as string)
         {
+            case "Revenue":
+                vm.FilterProfitRevenueCommand.Execute(null);
+                break;
             case "Margin":
                 vm.FilterProfitMarginCommand.Execute(null);
                 break;

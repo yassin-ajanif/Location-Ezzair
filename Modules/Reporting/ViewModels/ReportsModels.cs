@@ -212,6 +212,7 @@ public sealed partial class ReportDailySaleRow : ObservableObject
 
 public enum ReportProfitChargeKind
 {
+    Revenue,
     SaleMargin,
     Purchase,
     AvoirFournisseur,
@@ -259,6 +260,7 @@ public sealed class ReportProfitChargeRow
 
 public sealed class ReportProfitChargesResult
 {
+    public required decimal TotalRevenue { get; init; }
     public required decimal TotalSalesMargin { get; init; }
     public required decimal TotalPurchases { get; init; }
     public required decimal TotalAvoirsFournisseur { get; init; }
