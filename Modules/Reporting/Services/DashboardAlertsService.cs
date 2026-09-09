@@ -187,17 +187,28 @@ public sealed class DashboardAlertsService : IDashboardAlertsService
         var conflictEnd = today.AddDays(ConflictHorizonDays);
         var demandEnd = today.AddDays(HighDemandHorizonDays);
 
-        var openLines = await (
+        var openLinesRaw = await (
             from l in db.BonSortieProduitLignes.AsNoTracking()
             join b in db.BonsSortie.AsNoTracking() on l.BonSortieId equals b.Id
             where l.ProduitId != null && l.Quantite > l.QuantiteRetournee
             select new
             {
                 ProduitId = l.ProduitId!.Value,
-                DateDebut = b.DateDebut.Date,
-                Encore = l.Quantite - l.QuantiteRetournee,
-                OpenEnded = true
+                b.DateDebut,
+                b.DateFinPrevue,
+                b.DateRetourEffective,
+                Encore = l.Quantite - l.QuantiteRetournee
             }).ToListAsync(ct);
+
+        var openLines = openLinesRaw
+            .Select(l => new
+            {
+                l.ProduitId,
+                DateDebut = l.DateDebut.Date,
+                DateFin = (l.DateRetourEffective ?? l.DateFinPrevue).Date,
+                l.Encore
+            })
+            .ToList();
 
         var softLines = await (
             from l in db.ReservationProduitLignes.AsNoTracking()
@@ -210,8 +221,7 @@ public sealed class DashboardAlertsService : IDashboardAlertsService
                 ProduitId = l.ProduitId!.Value,
                 DateDebut = r.DateDebut.Date,
                 DateFin = r.DateFinPrevue.Date,
-                Encore = l.Quantite,
-                OpenEnded = false
+                Encore = l.Quantite
             }).ToListAsync(ct);
 
         var produitIds = openLines.Select(x => x.ProduitId)
@@ -257,7 +267,9 @@ public sealed class DashboardAlertsService : IDashboardAlertsService
                 var booked = 0m;
                 foreach (var l in openLines.Where(x => x.ProduitId == pid))
                 {
-                    if (d >= l.DateDebut)
+                    var end = l.DateFin;
+                    if (end < l.DateDebut) end = l.DateDebut;
+                    if (d >= l.DateDebut && d <= end)
                         booked += l.Encore;
                 }
 

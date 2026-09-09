@@ -66,8 +66,7 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
             ownedByProduit[pid] = stock + outQty;
         }
 
-        // Only bons that still have qty out can block stock. While qty remains out,
-        // occupancy must not end on DateFinPrevue alone (overdue / late return).
+        // Only open lines (qty still out) block stock; period ends at retour effectif or fin prévue.
         var openBsIds = allOpenBsLines.Select(l => l.BonSortieId).Distinct().ToList();
         var openBsHeaders = openBsIds.Count == 0
             ? []
@@ -80,8 +79,7 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
                     r.Numero,
                     r.ClientId,
                     r.DateDebut,
-                    r.DateFinPrevue,
-                    r.DateRetourEffective
+                    DateFin = r.DateRetourEffective ?? r.DateFinPrevue
                 })
                 .ToListAsync(cancellationToken);
 
@@ -92,8 +90,7 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
                 r.Numero,
                 r.ClientId,
                 DateDebut = r.DateDebut.Date,
-                DateFin = OccupancyEndWhileStillOut(),
-                DateFinDisplay = OccupancyDisplayEndWhileStillOut(r.DateRetourEffective, r.DateFinPrevue)
+                DateFin = r.DateFin.Date
             })
             .Where(r => PeriodsOverlap(periodStart, periodEnd, r.DateDebut, r.DateFin))
             .ToList();
@@ -170,7 +167,7 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
                         res.Numero,
                         string.IsNullOrWhiteSpace(nom) ? $"#{res.ClientId}" : nom,
                         res.DateDebut,
-                        res.DateFinDisplay,
+                        res.DateFin,
                         g.Sum(x => x.Encore));
                 }));
             sources.AddRange(softLinesOnOverlap
@@ -230,7 +227,7 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
         if (produit is null)
             return null;
 
-        var openLinesRaw = await (
+        var openLines = await (
             from l in db.BonSortieProduitLignes.AsNoTracking()
             join r in db.BonsSortie.AsNoTracking() on l.BonSortieId equals r.Id
             where l.ProduitId == produitId && l.Quantite > l.QuantiteRetournee
@@ -239,25 +236,11 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
                 r.Id,
                 r.Numero,
                 r.ClientId,
-                r.DateDebut,
-                r.DateFinPrevue,
-                r.DateRetourEffective,
-                Encore = l.Quantite - l.QuantiteRetournee
-            }).ToListAsync(cancellationToken);
-
-        var openLines = openLinesRaw
-            .Select(r => new
-            {
-                r.Id,
-                r.Numero,
-                r.ClientId,
                 DateDebut = r.DateDebut.Date,
-                DateFin = OccupancyEndWhileStillOut(),
-                DateFinDisplay = OccupancyDisplayEndWhileStillOut(r.DateRetourEffective, r.DateFinPrevue),
-                r.Encore,
+                DateFin = (r.DateRetourEffective ?? r.DateFinPrevue).Date,
+                Encore = l.Quantite - l.QuantiteRetournee,
                 IsSoft = false
-            })
-            .ToList();
+            }).ToListAsync(cancellationToken);
 
         var softLines = await (
             from l in db.ReservationProduitLignes.AsNoTracking()
@@ -272,13 +255,15 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
                 r.ClientId,
                 DateDebut = r.DateDebut.Date,
                 DateFin = r.DateFinPrevue.Date,
-                DateFinDisplay = r.DateFinPrevue.Date,
                 Encore = l.Quantite,
                 IsSoft = true
             }).ToListAsync(cancellationToken);
 
         var owned = produit.StockActuel + openLines.Sum(l => l.Encore);
 
+        var today = DateTime.Today;
+
+        // Occupancy = planned date ranges only (début → retour effectif / fin prévue).
         var relevant = openLines
             .Concat(softLines)
             .Where(l => PeriodsOverlap(gridStart, gridEnd, l.DateDebut, l.DateFin))
@@ -298,12 +283,10 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
             var start = b.DateDebut;
             var end = b.DateFin;
             if (end < start) (start, end) = (end, start);
-            // Open-ended overdue bons use MaxValue; never walk past the visible grid.
-            if (end > gridEnd) end = gridEnd;
-            if (start < gridStart) start = gridStart;
             var target = b.IsSoft ? softByDay : bsByDay;
             for (var d = start; d <= end; d = d.AddDays(1))
             {
+                if (d < gridStart || d > gridEnd) continue;
                 target.TryGetValue(d, out var sum);
                 target[d] = sum + b.Encore;
             }
@@ -318,6 +301,7 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
             bsByDay.TryGetValue(date, out var bsBooked);
             var booked = softBooked + bsBooked;
             var available = Math.Max(0, owned - booked);
+
             ProductAvailabilityDayLevel level;
             if (!inMonth)
                 level = ProductAvailabilityDayLevel.OutsideMonth;
@@ -332,7 +316,6 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
                 date, inMonth, booked, softBooked, bsBooked, available, owned, level));
         }
 
-        var today = DateTime.Today;
         var upcomingBookings = relevant
             .Where(l => l.DateFin >= today)
             .GroupBy(l => (l.IsSoft, l.Id, l.Numero))
@@ -344,7 +327,7 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
                     first.Numero,
                     string.IsNullOrWhiteSpace(nom) ? $"#{first.ClientId}" : nom,
                     first.DateDebut,
-                    first.DateFinDisplay,
+                    first.DateFin,
                     g.Sum(x => x.Encore));
             })
             .OrderBy(b => b.DateDebut)
@@ -407,24 +390,4 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
 
     private static bool PeriodsOverlap(DateTime aStart, DateTime aEnd, DateTime bStart, DateTime bEnd) =>
         aStart <= bEnd && bStart <= aEnd;
-
-    /// <summary>
-    /// Stock hold end for a bon de sortie line that still has quantity out.
-    /// Planned end alone must not free the item; stay open-ended until returned.
-    /// Callers clamp this to their calendar / check window.
-    /// </summary>
-    private static DateTime OccupancyEndWhileStillOut() => DateTime.MaxValue.Date;
-
-    /// <summary>
-    /// UI-friendly end date while qty is still out (avoid showing MaxValue).
-    /// </summary>
-    private static DateTime OccupancyDisplayEndWhileStillOut(DateTime? dateRetourEffective, DateTime dateFinPrevue)
-    {
-        if (dateRetourEffective is DateTime ret)
-            return ret.Date;
-
-        var planned = dateFinPrevue.Date;
-        var today = DateTime.Today;
-        return planned >= today ? planned : today;
-    }
 }
