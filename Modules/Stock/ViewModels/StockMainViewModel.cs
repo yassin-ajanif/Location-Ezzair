@@ -2,6 +2,11 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GestionCommerciale.Modules.Auth.Services;
+using GestionCommerciale.Modules.AvoirFournisseur.ViewModels;
+using GestionCommerciale.Modules.Facturation.ViewModels;
+using GestionCommerciale.Modules.Livraison.ViewModels;
+using GestionCommerciale.Modules.Reception.ViewModels;
+using GestionCommerciale.Modules.Reservation.ViewModels;
 using GestionCommerciale.Modules.Stock;
 using GestionCommerciale.Modules.Stock.Models;
 using GestionCommerciale.Modules.Stock.Services;
@@ -10,6 +15,7 @@ using GestionCommerciale.Shared.Helpers;
 using GestionCommerciale.Shared.Services;
 using GestionCommerciale.Shared.ViewModels;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace GestionCommerciale.Modules.Stock.ViewModels;
 
@@ -20,6 +26,8 @@ public partial class StockMainViewModel : BaseViewModel
     private readonly IDialogService _dialog;
     private readonly ICurrentUserSession _session;
     private readonly ILocaleService _locale;
+    private readonly WorkspaceNavigator _workspace;
+    private readonly IServiceProvider _sp;
 
     private int _currentProduitId;
 
@@ -28,13 +36,17 @@ public partial class StockMainViewModel : BaseViewModel
         IStockMovementService stock,
         IDialogService dialog,
         ICurrentUserSession session,
-        ILocaleService locale)
+        ILocaleService locale,
+        WorkspaceNavigator workspaceNavigator,
+        IServiceProvider sp)
     {
         _dbFactory = dbFactory;
         _stock = stock;
         _dialog = dialog;
         _session = session;
         _locale = locale;
+        _workspace = workspaceNavigator;
+        _sp = sp;
         _locale.CultureApplied += (_, _) => RefreshStockUi();
         RefreshStockUi();
         Pagination = new PaginationHelper(() => _ = LoadProduitsAsync(CancellationToken.None));
@@ -366,6 +378,52 @@ public partial class StockMainViewModel : BaseViewModel
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private void OpenMovementDocument(MouvementStock? m)
+    {
+        if (m?.OrigineId is not int id || id <= 0)
+            return;
+
+        switch (m.OrigineType)
+        {
+            case StockMovementService.OrigineTypeLocation:
+            {
+                var vm = _sp.GetRequiredService<ReservationEditViewModel>();
+                vm.Load(id);
+                _workspace.Open(vm);
+                break;
+            }
+            case StockMovementService.OrigineTypeBonLivraison:
+            {
+                var vm = _sp.GetRequiredService<BLEditViewModel>();
+                vm.Load(id);
+                _workspace.Open(vm);
+                break;
+            }
+            case StockMovementService.OrigineTypeBonReception:
+            {
+                var vm = _sp.GetRequiredService<BREditViewModel>();
+                vm.Load(id);
+                _workspace.Open(vm);
+                break;
+            }
+            case StockMovementService.OrigineTypeAvoir:
+            {
+                var vm = _sp.GetRequiredService<AvoirEditViewModel>();
+                vm.Load(id);
+                _workspace.Open(vm);
+                break;
+            }
+            case StockMovementService.OrigineTypeAvoirFournisseur:
+            {
+                var vm = _sp.GetRequiredService<AvoirFournisseurEditViewModel>();
+                vm.Load(id);
+                _workspace.Open(vm);
+                break;
+            }
         }
     }
 }

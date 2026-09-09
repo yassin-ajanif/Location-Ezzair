@@ -61,6 +61,11 @@ public class MouvementStock : BaseEntity
     public string DocumentRef => string.IsNullOrWhiteSpace(Note) ? OrigineType : Note;
 
     [NotMapped]
+    public bool CanOpenDocument =>
+        OrigineId is > 0
+        && OrigineType is "LOC" or "BL" or "BR" or "Avoir" or "AvoirFournisseur";
+
+    [NotMapped]
     public string TraceDetail => DocumentRef;
 
     [NotMapped]

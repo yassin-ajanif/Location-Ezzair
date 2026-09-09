@@ -118,6 +118,22 @@
     <Setter Property="Opacity" Value="0.92"/>
   </Style>
 
+  <Style Selector="Button.stock-doc-link">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="FontSize" Value="11"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Foreground" Value="{DynamicResource CourseraPrimaryBrush}"/>
+    <Setter Property="Cursor" Value="Hand"/>
+  </Style>
+
+  <Style Selector="Button.stock-doc-link:pointerover">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Opacity" Value="0.85"/>
+  </Style>
+
   <Style Selector="Button:pointerover">
     <Setter Property="Background" Value="{DynamicResource CourseraSurfaceMutedBrush}"/>
   </Style>

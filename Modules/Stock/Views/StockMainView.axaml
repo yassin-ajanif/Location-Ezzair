@@ -5,6 +5,7 @@
              xmlns:conv="using:GestionCommerciale.Shared.Converters"
              xmlns:shared="using:GestionCommerciale.Shared.Views"
              x:Class="GestionCommerciale.Modules.Stock.Views.StockMainView"
+             x:Name="StockRoot"
              x:DataType="vm:StockMainViewModel">
   <Grid ColumnDefinitions="*,*">
       <Border Padding="12" CornerRadius="8" BorderBrush="#28000000" BorderThickness="1"
@@ -100,7 +101,17 @@
                   <Grid ColumnDefinitions="108,*,72,72,72">
                     <TextBlock Text="{Binding CreatedAt, StringFormat={}{0:dd/MM/yyyy HH:mm}}" FontSize="11" VerticalAlignment="Center"/>
                     <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center" Spacing="2">
-                      <TextBlock Text="{Binding DocumentRef}" FontSize="11" Opacity="0.85"/>
+                      <Panel>
+                        <TextBlock Text="{Binding DocumentRef}" FontSize="11" Opacity="0.85"
+                                   IsVisible="{Binding !CanOpenDocument}"/>
+                        <Button Classes="stock-doc-link"
+                                HorizontalAlignment="Left" HorizontalContentAlignment="Left"
+                                Padding="0" Margin="0" Cursor="Hand"
+                                IsVisible="{Binding CanOpenDocument}"
+                                Content="{Binding DocumentRef}"
+                                Command="{Binding #StockRoot.((vm:StockMainViewModel)DataContext).OpenMovementDocumentCommand}"
+                                CommandParameter="{Binding}"/>
+                      </Panel>
                       <TextBlock Text="{Binding PartyName}" FontSize="10" FontWeight="SemiBold"
                                  Foreground="{Binding PartyColorSignal, Converter={x:Static conv:PositiveNegativeForegroundConverter.Instance}}"
                                  IsVisible="{Binding HasPartyName}"/>
