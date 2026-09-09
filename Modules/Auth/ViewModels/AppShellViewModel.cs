@@ -66,7 +66,6 @@ public partial class AppShellViewModel : BaseViewModel
     [ObservableProperty] private string _navReservation = string.Empty;
     [ObservableProperty] private string _navEtatClient = string.Empty;
     [ObservableProperty] private string _navFactures = string.Empty;
-    [ObservableProperty] private string _navAvoirs = string.Empty;
     [ObservableProperty] private string _navAvoirFournisseur = string.Empty;
     [ObservableProperty] private string _navFournisseurs = string.Empty;
     [ObservableProperty] private string _navBc = string.Empty;
@@ -91,7 +90,6 @@ public partial class AppShellViewModel : BaseViewModel
     [ObservableProperty] private bool _isNavReservationActive;
     [ObservableProperty] private bool _isNavEtatClientActive;
     [ObservableProperty] private bool _isNavFacturesActive;
-    [ObservableProperty] private bool _isNavAvoirsActive;
     [ObservableProperty] private bool _isNavAvoirFournisseurActive;
     [ObservableProperty] private bool _isNavBcActive;
     [ObservableProperty] private bool _isNavBrActive;
@@ -114,7 +112,6 @@ public partial class AppShellViewModel : BaseViewModel
         NavReservation = _locale.T("Nav_Reservation");
         NavEtatClient = _locale.T("Nav_EtatClient");
         NavFactures = _locale.T("Nav_Factures");
-        NavAvoirs = _locale.T("Nav_Avoirs");
         NavAvoirFournisseur = _locale.T("Nav_AvoirFournisseur");
         NavFournisseurs = _locale.T("Nav_Fournisseurs");
         NavBc = _locale.T("Nav_BC");
@@ -189,10 +186,10 @@ public partial class AppShellViewModel : BaseViewModel
     public bool ShowNavBR => _session.CanAccessBR;
     public bool ShowNavBC => _session.CanAccessBC;
     public bool ShowNavFactures => _session.CanAccessFacturation;
-    public bool ShowNavAvoirs => _session.CanAccessAvoir;
     public bool ShowNavFacturesFournisseur => _session.CanAccessFacturation;
     public bool ShowNavCharges => _session.CanAccessBC;
     public bool ShowNavServices => _session.CanAccessStock;
+    /// <summary>Supplier credit notes (AVF); gated by <see cref="ICurrentUserSession.CanAccessAvoir"/>.</summary>
     public bool ShowNavAvoirFournisseur => _session.CanAccessAvoir;
     public bool ShowNavReports => _session.CanAccessReporting;
     public bool ShowNavSettings => _session.CanAccessSettings;
@@ -282,9 +279,6 @@ public partial class AppShellViewModel : BaseViewModel
     private void GoFactures() => _workspace.Open(_sp.GetRequiredService<FactureListViewModel>());
 
     [RelayCommand]
-    private void GoAvoirs() => _workspace.Open(_sp.GetRequiredService<AvoirListViewModel>());
-
-    [RelayCommand]
     private void GoFacturesFournisseur() => _workspace.Open(_sp.GetRequiredService<FactureFournisseurListViewModel>());
 
     [RelayCommand]
@@ -340,7 +334,6 @@ public partial class AppShellViewModel : BaseViewModel
         IsNavReservationActive = p is SoftReservationListViewModel or SoftReservationEditViewModel;
         IsNavEtatClientActive = p is EtatClientViewModel;
         IsNavFacturesActive = p is FactureListViewModel or FactureEditViewModel;
-        IsNavAvoirsActive = p is AvoirListViewModel or AvoirEditViewModel;
         IsNavAvoirFournisseurActive = p is AvoirFournisseurListViewModel or AvoirFournisseurEditViewModel;
         IsNavBcActive = p is BCListViewModel or BCEditViewModel;
         IsNavBrActive = p is BRListViewModel or BREditViewModel;

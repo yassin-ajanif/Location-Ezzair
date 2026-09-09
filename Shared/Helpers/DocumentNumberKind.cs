@@ -7,7 +7,6 @@ public static class DocumentNumberKind
     public static readonly Entry[] All =
     [
         new("FAC", "Nav_Factures"),
-        new("AVO", "Nav_Avoirs"),
         new("BC", "Nav_BC"),
         new("BR", "Nav_BR"),
         new("FAF", "Nav_FacturesFournisseur"),

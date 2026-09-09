@@ -24,15 +24,6 @@ public interface IStockMovementService
         int? createdByUserId,
         CancellationToken cancellationToken = default);
 
-    Task SyncAvoirStockAsync(
-        AppDbContext db,
-        int avoirId,
-        string noteDetail,
-        bool retourMarchandise,
-        IEnumerable<(int ProduitId, decimal Quantite)> lines,
-        int? createdByUserId,
-        CancellationToken cancellationToken = default);
-
     Task SyncAvoirFournisseurStockAsync(
         AppDbContext db,
         int avoirFournisseurId,

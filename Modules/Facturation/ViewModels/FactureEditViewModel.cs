@@ -252,12 +252,6 @@ public partial class FactureEditViewModel : BaseViewModel
         try
         {
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-            if (await db.Avoirs.AsNoTracking().AnyAsync(a => a.FactureId == id, cancellationToken))
-            {
-                await _dialog.ShowErrorAsync(_locale.T("Fact_Title"), _locale.T("Fact_ErrDeleteReferenced"), cancellationToken);
-                return;
-            }
-
             var entity = await db.Factures.Include(f => f.Lignes).Include(f => f.Paiements).FirstAsync(f => f.Id == id, cancellationToken);
             db.Factures.Remove(entity);
             await db.SaveChangesAsync(cancellationToken);

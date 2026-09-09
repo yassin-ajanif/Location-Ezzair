@@ -8,7 +8,6 @@ namespace GestionCommerciale.Modules.Stock.Services;
 public sealed class StockMovementService : IStockMovementService
 {
     public const string OrigineTypeBonReception = "BR";
-    public const string OrigineTypeAvoir = "Avoir";
     public const string OrigineTypeAvoirFournisseur = "AvoirFournisseur";
     public const string OrigineTypeLocation = "LOC";
     public const string OrigineTypeImport = "Import";
@@ -98,34 +97,6 @@ public sealed class StockMovementService : IStockMovementService
                 if (totalQty > 0)
                     produit.PrixAchatHT = (oldQty * oldPrice + entreeDelta * newPrice) / totalQty;
             },
-            cancellationToken);
-    }
-
-    public Task SyncAvoirStockAsync(
-        AppDbContext db,
-        int avoirId,
-        string noteDetail,
-        bool retourMarchandise,
-        IEnumerable<(int ProduitId, decimal Quantite)> lines,
-        int? createdByUserId,
-        CancellationToken cancellationToken = default)
-    {
-        var desired = retourMarchandise
-            ? lines
-                .Where(l => l.ProduitId > 0 && l.Quantite > 0)
-                .GroupBy(l => l.ProduitId)
-                .ToDictionary(g => g.Key, g => g.Sum(l => l.Quantite))
-            : [];
-
-        return SyncDocumentStockAsync(
-            db,
-            OrigineTypeAvoir,
-            avoirId,
-            noteDetail,
-            desired,
-            createdByUserId,
-            useModificationNoteOnEdit: true,
-            onPositiveEntreeDelta: null,
             cancellationToken);
     }
 

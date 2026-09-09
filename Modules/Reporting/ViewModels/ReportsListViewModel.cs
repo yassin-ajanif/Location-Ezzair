@@ -57,7 +57,6 @@ public partial class ReportsListViewModel : BaseViewModel
 
     [ObservableProperty] private string _btnSaleByProduct = string.Empty;
     [ObservableProperty] private string _btnSaleByCustomer = string.Empty;
-    [ObservableProperty] private string _btnRefunds = string.Empty;
     [ObservableProperty] private string _btnDailySales = string.Empty;
     [ObservableProperty] private string _btnUnpaid = string.Empty;
     [ObservableProperty] private string _btnStockMovements = string.Empty;
@@ -73,7 +72,6 @@ public partial class ReportsListViewModel : BaseViewModel
     // visible columns for each report — used in view
     [ObservableProperty] private bool _showSaleByProduct;
     [ObservableProperty] private bool _showSaleByCustomer;
-    [ObservableProperty] private bool _showRefunds;
     [ObservableProperty] private bool _showDailySales;
     [ObservableProperty] private bool _showUnpaid;
     [ObservableProperty] private bool _showStockMovements;
@@ -95,14 +93,12 @@ public partial class ReportsListViewModel : BaseViewModel
     [ObservableProperty] private string _lblStockValHt = string.Empty;
     [ObservableProperty] private string _lblStockValTtc = string.Empty;
     [ObservableProperty] private string _lblProfitChargesTotalMargin = string.Empty;
-    [ObservableProperty] private string _lblProfitChargesTotalAvoirsClient = string.Empty;
     [ObservableProperty] private string _lblProfitChargesTotalPurchases = string.Empty;
     [ObservableProperty] private string _lblProfitChargesTotalAvoirsFournisseur = string.Empty;
     [ObservableProperty] private string _lblProfitChargesTotalCharges = string.Empty;
     [ObservableProperty] private string _lblProfitChargesNetResult = string.Empty;
     [ObservableProperty] private bool _isNetPositive = true;
     [ObservableProperty] private string _lblProfitChargesMarginLabel = string.Empty;
-    [ObservableProperty] private string _lblProfitChargesAvoirsClientLabel = string.Empty;
     [ObservableProperty] private string _lblProfitChargesPurchasesLabel = string.Empty;
     [ObservableProperty] private string _lblProfitChargesAvoirsFournisseurLabel = string.Empty;
     [ObservableProperty] private string _lblProfitChargesChargesLabel = string.Empty;
@@ -124,7 +120,6 @@ public partial class ReportsListViewModel : BaseViewModel
     [ObservableProperty] private string _lblZakatAmount = string.Empty;
     [ObservableProperty] private bool _showPagination;
     [ObservableProperty] private bool _isProfitFilterMarginActive;
-    [ObservableProperty] private bool _isProfitFilterAvoirsClientActive;
     [ObservableProperty] private bool _isProfitFilterPurchasesActive;
     [ObservableProperty] private bool _isProfitFilterAvoirsFournisseurActive;
     [ObservableProperty] private bool _isProfitFilterChargesActive;
@@ -132,7 +127,6 @@ public partial class ReportsListViewModel : BaseViewModel
 
     private List<ReportSaleByProductRow> _allSalesByProduct = [];
     private List<ReportSaleByCustomerRow> _allSalesByCustomer = [];
-    private List<ReportRefundRow> _allRefunds = [];
     private List<ReportDailySaleRow> _allDailySales = [];
     private List<ReportUnpaidRow> _allUnpaidSales = [];
     private List<ReportStockMovementRow> _allStockMovements = [];
@@ -143,7 +137,6 @@ public partial class ReportsListViewModel : BaseViewModel
 
     public ObservableCollection<ReportSaleByProductRow> SalesByProduct { get; } = [];
     public ObservableCollection<ReportSaleByCustomerRow> SalesByCustomer { get; } = [];
-    public ObservableCollection<ReportRefundRow> Refunds { get; } = [];
     public ObservableCollection<ReportDailySaleRow> DailySales { get; } = [];
     public ObservableCollection<ReportUnpaidRow> UnpaidSales { get; } = [];
     public ObservableCollection<ReportStockMovementRow> StockMovements { get; } = [];
@@ -160,7 +153,6 @@ public partial class ReportsListViewModel : BaseViewModel
         LblLoading = _locale.T("Report_Loading");
         BtnSaleByProduct = _locale.T("Reports_BtnSaleByProduct");
         BtnSaleByCustomer = _locale.T("Reports_BtnSaleByCustomer");
-        BtnRefunds = _locale.T("Reports_BtnRefunds");
         BtnDailySales = _locale.T("Reports_BtnDailySales");
         BtnUnpaid = _locale.T("Reports_BtnUnpaid");
         BtnStockMovements = _locale.T("Reports_BtnStockMovements");
@@ -175,7 +167,6 @@ public partial class ReportsListViewModel : BaseViewModel
         LblStockValHtLabel = _locale.T("Reports_LblStockValHt");
         LblStockValTtcLabel = _locale.T("Reports_LblStockValTtc");
         LblProfitChargesMarginLabel = _locale.T("Reports_LblTotalSalesMargin");
-        LblProfitChargesAvoirsClientLabel = _locale.T("Reports_LblTotalAvoirsClient");
         LblProfitChargesPurchasesLabel = _locale.T("Reports_LblTotalPurchases");
         LblProfitChargesAvoirsFournisseurLabel = _locale.T("Reports_LblTotalAvoirsFournisseur");
         LblProfitChargesChargesLabel = _locale.T("Reports_LblTotalCharges");
@@ -198,12 +189,11 @@ public partial class ReportsListViewModel : BaseViewModel
         ShowProfitCharges = value == 0;
         ShowSaleByProduct = value == 1;
         ShowSaleByCustomer = value == 2;
-        ShowRefunds = value == 3;
-        ShowDailySales = value == 4;
-        ShowUnpaid = value == 5;
-        ShowStockMovements = value == 6;
-        ShowZakat = value == 7;
-        ShowDateFilter = value != 5;
+        ShowDailySales = value == 3;
+        ShowUnpaid = value == 4;
+        ShowStockMovements = value == 5;
+        ShowZakat = value == 6;
+        ShowDateFilter = value != 4;
         LoadReportCommand.Execute(null);
     }
 
@@ -223,11 +213,10 @@ public partial class ReportsListViewModel : BaseViewModel
     }
     [RelayCommand] private void GoSaleByProduct() => SelectedReportIndex = 1;
     [RelayCommand] private void GoSaleByCustomer() => SelectedReportIndex = 2;
-    [RelayCommand] private void GoRefunds() => SelectedReportIndex = 3;
-    [RelayCommand] private void GoDailySales() => SelectedReportIndex = 4;
-    [RelayCommand] private void GoUnpaid() => SelectedReportIndex = 5;
-    [RelayCommand] private void GoStockMovements() => SelectedReportIndex = 6;
-    [RelayCommand] private void GoZakat() => SelectedReportIndex = 7;
+    [RelayCommand] private void GoDailySales() => SelectedReportIndex = 3;
+    [RelayCommand] private void GoUnpaid() => SelectedReportIndex = 4;
+    [RelayCommand] private void GoStockMovements() => SelectedReportIndex = 5;
+    [RelayCommand] private void GoZakat() => SelectedReportIndex = 6;
 
     [RelayCommand]
     private void ToggleCustomerExpand(ReportSaleByCustomerRow? row)
@@ -273,18 +262,15 @@ public partial class ReportsListViewModel : BaseViewModel
                     await LoadSalesByCustomerAsync(from, to, cancellationToken);
                     break;
                 case 3:
-                    await LoadRefundsAsync(from, to, cancellationToken);
-                    break;
-                case 4:
                     await LoadDailySalesAsync(from, to, cancellationToken);
                     break;
-                case 5:
+                case 4:
                     await LoadUnpaidAsync(cancellationToken);
                     break;
-                case 6:
+                case 5:
                     await LoadStockMovementsAsync(from, to, cancellationToken);
                     break;
-                case 7:
+                case 6:
                     await LoadZakatAsync(from, to, cancellationToken);
                     break;
             }
@@ -316,11 +302,6 @@ public partial class ReportsListViewModel : BaseViewModel
         FinishPagedLoad(_allSalesByCustomer.Count);
     }
 
-    private async Task LoadRefundsAsync(DateTime from, DateTime to, CancellationToken ct)
-    {
-        _allRefunds = await Task.Run(() => _reportService.GetRefundsAsync(from, to, ct), ct);
-        FinishPagedLoad(_allRefunds.Count);
-    }
 
     private async Task LoadDailySalesAsync(DateTime from, DateTime to, CancellationToken ct)
     {
@@ -363,7 +344,6 @@ public partial class ReportsListViewModel : BaseViewModel
         _allProfitCharges = result.Rows;
         var dev = result.Devise;
         LblProfitChargesTotalMargin = $"+{result.TotalSalesMargin:N2} {dev}";
-        LblProfitChargesTotalAvoirsClient = $"-{result.TotalAvoirsClient:N2} {dev}";
         LblProfitChargesTotalPurchases = $"-{result.TotalPurchases:N2} {dev}";
         LblProfitChargesTotalAvoirsFournisseur = $"+{result.TotalAvoirsFournisseur:N2} {dev}";
         LblProfitChargesTotalCharges = $"-{result.TotalCharges:N2} {dev}";
@@ -376,8 +356,6 @@ public partial class ReportsListViewModel : BaseViewModel
     [RelayCommand]
     private void FilterProfitMargin() => ToggleProfitFilter(ReportProfitChargeKind.SaleMargin);
 
-    [RelayCommand]
-    private void FilterProfitAvoirsClient() => ToggleProfitFilter(ReportProfitChargeKind.AvoirClient);
 
     [RelayCommand]
     private void FilterProfitPurchases() => ToggleProfitFilter(ReportProfitChargeKind.Purchase);
@@ -402,7 +380,6 @@ public partial class ReportsListViewModel : BaseViewModel
     {
         _profitFilterKind = kind;
         IsProfitFilterMarginActive = kind == ReportProfitChargeKind.SaleMargin;
-        IsProfitFilterAvoirsClientActive = kind == ReportProfitChargeKind.AvoirClient;
         IsProfitFilterPurchasesActive = kind == ReportProfitChargeKind.Purchase;
         IsProfitFilterAvoirsFournisseurActive = kind == ReportProfitChargeKind.AvoirFournisseur;
         IsProfitFilterChargesActive = kind == ReportProfitChargeKind.Charge;
@@ -438,18 +415,15 @@ public partial class ReportsListViewModel : BaseViewModel
                 ApplyPage(SalesByCustomer, _allSalesByCustomer);
                 break;
             case 3:
-                ApplyPage(Refunds, _allRefunds);
-                break;
-            case 4:
                 ApplyPage(DailySales, _allDailySales);
                 break;
-            case 5:
+            case 4:
                 ApplyPage(UnpaidSales, _allUnpaidSales);
                 break;
-            case 6:
+            case 5:
                 ApplyPage(StockMovements, _allStockMovements);
                 break;
-            case 7:
+            case 6:
                 ApplyPage(ZakatClients, _allZakatClients);
                 break;
         }
@@ -523,11 +497,10 @@ public partial class ReportsListViewModel : BaseViewModel
         0 => BtnProfitCharges,
         1 => BtnSaleByProduct,
         2 => BtnSaleByCustomer,
-        3 => BtnRefunds,
-        4 => BtnDailySales,
-        5 => BtnUnpaid,
-        6 => BtnStockMovements,
-        7 => BtnZakat,
+        3 => BtnDailySales,
+        4 => BtnUnpaid,
+        5 => BtnStockMovements,
+        6 => BtnZakat,
         _ => LblTitle
     };
 
@@ -564,7 +537,6 @@ public partial class ReportsListViewModel : BaseViewModel
                         [r.TypeLabel, r.RefLibelle, r.LblDate, r.LblMontantHt, r.LblAmount]).ToList(),
                     [
                         new(LblProfitChargesMarginLabel, LblProfitChargesTotalMargin),
-                        new(LblProfitChargesAvoirsClientLabel, LblProfitChargesTotalAvoirsClient),
                         new(LblProfitChargesPurchasesLabel, LblProfitChargesTotalPurchases),
                         new(LblProfitChargesAvoirsFournisseurLabel, LblProfitChargesTotalAvoirsFournisseur),
                         new(LblProfitChargesChargesLabel, LblProfitChargesTotalCharges),
@@ -590,26 +562,19 @@ public partial class ReportsListViewModel : BaseViewModel
                     ]);
             case 3:
                 return (
-                    [_locale.T("Lbl_ColRef"), _locale.T("DevisList_ColDate"), _locale.T("Lbl_Client"),
-                        _locale.T("Reports_LblTotalTtc")],
-                    _allRefunds.Select(r => (IReadOnlyList<string>)
-                        [r.Numero, r.LblDate, r.Client, r.LblTotal]).ToList(),
-                    []);
-            case 4:
-                return (
                     [_locale.T("DevisList_ColDate"), _locale.T("Reports_LblTotalHt"),
                         _locale.T("Reports_LblTotalTtc"), _locale.T("Reports_LblProfit")],
                     _allDailySales.Select(r => (IReadOnlyList<string>)
                         [r.LblDate, r.LblHt, r.LblTtc, r.LblProfit]).ToList(),
                     [new(LblSaleByCustomerLabelProfit, LblDailySalesTotalProfit)]);
-            case 5:
+            case 4:
                 return (
                     [_locale.T("Lbl_ColRef"), _locale.T("Reports_LblTotalTtc"),
                         _locale.T("DevisList_ColDate"), "Statut"],
                     _allUnpaidSales.Select(r => (IReadOnlyList<string>)
                         [r.Numero, r.Reste, r.DateEcheance, r.DueStatus]).ToList(),
                     []);
-            case 6:
+            case 5:
                 return (
                     [_locale.T("DevisList_ColDate"), _locale.T("Lbl_ColRef"), _locale.T("Lbl_ColDesignation"),
                         "Type", _locale.T("DocLine_ColQte")],
@@ -619,7 +584,7 @@ public partial class ReportsListViewModel : BaseViewModel
                         new(LblStockValHtLabel, LblStockValHt),
                         new(LblStockValTtcLabel, LblStockValTtc)
                     ]);
-            case 7:
+            case 6:
                 return (
                     [ColZakatClient, ColZakatBalance],
                     _allZakatClients.Select(r => (IReadOnlyList<string>)

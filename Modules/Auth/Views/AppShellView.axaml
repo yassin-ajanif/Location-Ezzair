@@ -51,10 +51,6 @@
                     Background="{Binding IsNavFacturesActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=bg}"
                     Foreground="{Binding IsNavFacturesActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=fg}"
                     BorderBrush="{Binding IsNavFacturesActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=border}"/>
-            <Button Content="{Binding NavAvoirs}" Command="{Binding GoAvoirsCommand}" HorizontalAlignment="Stretch" IsVisible="{Binding ShowNavAvoirs}"
-                    Background="{Binding IsNavAvoirsActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=bg}"
-                    Foreground="{Binding IsNavAvoirsActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=fg}"
-                    BorderBrush="{Binding IsNavAvoirsActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=border}"/>
           </StackPanel>
 
           <Button Command="{Binding ToggleAchatNavCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"

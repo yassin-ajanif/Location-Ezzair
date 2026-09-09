@@ -55,7 +55,6 @@ public static class DependencyInjection
         services.AddSingleton<IClientAccountStatementService, ClientAccountStatementService>();
         services.AddSingleton<ISupplierAccountStatementService, SupplierAccountStatementService>();
         services.AddSingleton<IFactureWorkflowService, FactureWorkflowService>();
-        services.AddSingleton<IAvoirWorkflowService, AvoirWorkflowService>();
         services.AddSingleton<IReportService, ReportService>();
         services.AddSingleton<IDashboardAlertsService, DashboardAlertsService>();
         services.AddSingleton<ILicenseService, LicenseService>();
@@ -89,8 +88,6 @@ public static class DependencyInjection
         services.AddTransient<FactureEditViewModel>();
         services.AddTransient<FactureFournisseurListViewModel>();
         services.AddTransient<FactureFournisseurEditViewModel>();
-        services.AddTransient<AvoirListViewModel>();
-        services.AddTransient<AvoirEditViewModel>();
         services.AddTransient<AvoirFournisseurListViewModel>();
         services.AddTransient<AvoirFournisseurEditViewModel>();
         services.AddTransient<ChargesListViewModel>();

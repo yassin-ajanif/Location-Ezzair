@@ -27,9 +27,6 @@ public sealed class DocumentNumberService : IDocumentNumberService
     public Task<string> NextFactureFournisseurAsync(CancellationToken cancellationToken = default) =>
         NextFromDbAsync(db => db.FacturesFournisseurs.AsNoTracking().Select(d => d.Numero).ToListAsync(cancellationToken), "FAF", cancellationToken);
 
-    public Task<string> NextAvoirAsync(CancellationToken cancellationToken = default) =>
-        NextFromDbAsync(db => db.Avoirs.AsNoTracking().Select(d => d.Numero).ToListAsync(cancellationToken), "AVO", cancellationToken);
-
     public Task<string> NextAvoirFournisseurAsync(CancellationToken cancellationToken = default) =>
         NextFromDbAsync(db => db.AvoirsFournisseurs.AsNoTracking().Select(d => d.Numero).ToListAsync(cancellationToken), "AVF", cancellationToken);
 

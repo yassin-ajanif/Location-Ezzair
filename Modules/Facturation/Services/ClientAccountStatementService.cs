@@ -1,6 +1,5 @@
 using GestionCommerciale.Modules.Facturation.Models;
 using GestionCommerciale.Shared.Database;
-using GestionCommerciale.Shared.Helpers;
 using GestionCommerciale.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -40,24 +39,6 @@ public sealed class ClientAccountStatementService : IClientAccountStatementServi
             })
             .ToListAsync(cancellationToken);
 
-        var avoirs = await db.Avoirs.AsNoTracking()
-            .Where(a => a.ClientId == clientId)
-            .Select(a => new
-            {
-                a.Id,
-                a.Numero,
-                a.Date,
-                a.Motif,
-                Lignes = a.Lignes!.Select(l => new
-                {
-                    l.Quantite,
-                    l.PrixUnitaireHT,
-                    l.Remise,
-                    l.TauxTVA
-                }).ToList()
-            })
-            .ToListAsync(cancellationToken);
-
         var entries = new List<(DateTime Date, ClientAccountEntryKind Kind, long TieBreakId, string Designation, string Observation, decimal Debit, decimal Credit)>();
 
         foreach (var f in factures)
@@ -73,29 +54,6 @@ public sealed class ClientAccountStatementService : IClientAccountStatementServi
                 string.Empty,
                 ttc,
                 0));
-        }
-
-        foreach (var a in avoirs)
-        {
-            var lignes = a.Lignes.Select(l => new AvoirLigne
-            {
-                Quantite = l.Quantite,
-                PrixUnitaireHT = l.PrixUnitaireHT,
-                Remise = l.Remise,
-                TauxTVA = l.TauxTVA
-            }).ToList();
-            var (_, _, ttc) = DocumentTotalsHelper.AvoirTotals(lignes);
-            if (ttc <= 0) continue;
-
-            var observation = string.IsNullOrWhiteSpace(a.Motif) ? string.Empty : a.Motif.Trim();
-            entries.Add((
-                a.Date.Date,
-                ClientAccountEntryKind.Avoir,
-                a.Id,
-                _locale.Tf("ClientLedger_AvoirFmt", a.Numero),
-                observation,
-                0,
-                ttc));
         }
 
         foreach (var f in factures)

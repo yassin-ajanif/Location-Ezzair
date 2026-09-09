@@ -24,9 +24,6 @@ public partial class ReportsListView : UserControl
             case "Margin":
                 vm.FilterProfitMarginCommand.Execute(null);
                 break;
-            case "AvoirsClient":
-                vm.FilterProfitAvoirsClientCommand.Execute(null);
-                break;
             case "Purchases":
                 vm.FilterProfitPurchasesCommand.Execute(null);
                 break;

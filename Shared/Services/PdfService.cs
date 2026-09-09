@@ -255,42 +255,6 @@ public sealed class PdfService : IPdfService
         return linkedNums.Count == 0 ? null : string.Join(", ", linkedNums);
     }
 
-    public async Task<byte[]> BuildAvoirPdfAsync(Avoir avoir, DocumentPartyPdfInfo party, CancellationToken cancellationToken = default)
-    {
-        var cfg = await _settings.GetAsync(cancellationToken);
-        var meta = await LoadProductMetaAsync(avoir.Lignes.Select(l => l.ProduitId), cancellationToken);
-        var totals = DocumentTotalsHelper.AvoirTotals(avoir.Lignes);
-        var vis = _uiPreferences.GetDocumentLineColumnVisibility("avoir");
-        var lineData = new List<StandardPdfLine>();
-        foreach (var l in avoir.Lignes)
-        {
-            var lht = DocumentTotalsHelper.LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise);
-            var ttc = lht * (1 + l.TauxTVA / 100m);
-            lineData.Add(new StandardPdfLine(
-                RefCell(meta, l.ProduitId),
-                l.Designation,
-                FmtQty(l.Quantite),
-                string.IsNullOrWhiteSpace(l.Conditionnement) ? UniteCell(meta, l.ProduitId) : l.Conditionnement,
-                FmtUnitPrice(l.PrixUnitaireHT),
-                FmtTvaPct(l.TauxTVA),
-                FmtMoney(l.Remise),
-                FmtMoney(lht),
-                FmtMoney(ttc)));
-        }
-
-        var (cols, rows) = BuildStandardPdfTable(vis, supportsLineRemise: true, "Qté", lineData);
-
-        var note = $"{avoir.Motif}\nRetour marchandise : {(avoir.RetourMarchandise ? "Oui" : "Non")}";
-        var docLines = new List<PdfKeyValueLine>
-        {
-            new("N°", avoir.Numero),
-            new("Date", avoir.Date.ToString("dd/MM/yyyy"))
-        };
-
-        var model = BaseModel(cfg, "AVOIR", docLines, PartyLines(party, "Client"), cols, rows, totals, note, vis.ShowMontantTtc);
-        return CommercialDocumentPdfRenderer.Render(model, TryLoadLogoBytes(cfg.SocieteLogoPath));
-    }
-
     public async Task<byte[]> BuildAvoirFournisseurPdfAsync(AvoirFournisseur doc, DocumentPartyPdfInfo party, CancellationToken cancellationToken = default)
     {
         var cfg = await _settings.GetAsync(cancellationToken);

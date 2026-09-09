@@ -126,35 +126,6 @@ public sealed partial class ReportSaleByCustomerRow : ObservableObject
     public ObservableCollection<ReportSaleByCustomerProductRow> Products => _products;
 }
 
-public sealed class ReportRefundRow
-{
-    public ReportRefundRow(string numero, DateTime date, string client,
-        string motif, bool retourMarchandise, decimal totalTtc, string devise)
-    {
-        Numero = numero;
-        Date = date;
-        Client = client;
-        Motif = motif;
-        RetourMarchandise = retourMarchandise;
-        TotalTtc = totalTtc;
-        Devise = devise;
-        LblDate = date.ToString("d");
-        LblTotal = $"{totalTtc:N2} {devise}";
-        LblRetour = retourMarchandise ? "\u2713" : "";
-    }
-
-    public string Numero { get; }
-    public DateTime Date { get; }
-    public string Client { get; }
-    public string Motif { get; }
-    public bool RetourMarchandise { get; }
-    public decimal TotalTtc { get; }
-    public string Devise { get; }
-    public string LblDate { get; }
-    public string LblTotal { get; }
-    public string LblRetour { get; }
-}
-
 public sealed class ReportDailySaleDetailRow
 {
     public ReportDailySaleDetailRow(string numero, string client,
@@ -242,7 +213,6 @@ public sealed partial class ReportDailySaleRow : ObservableObject
 public enum ReportProfitChargeKind
 {
     SaleMargin,
-    AvoirClient,
     Purchase,
     AvoirFournisseur,
     Charge
@@ -290,7 +260,6 @@ public sealed class ReportProfitChargeRow
 public sealed class ReportProfitChargesResult
 {
     public required decimal TotalSalesMargin { get; init; }
-    public required decimal TotalAvoirsClient { get; init; }
     public required decimal TotalPurchases { get; init; }
     public required decimal TotalAvoirsFournisseur { get; init; }
     public required decimal TotalCharges { get; init; }

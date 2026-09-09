@@ -271,57 +271,6 @@ public sealed class ReportService : IReportService
         return grouped;
     }
 
-    public async Task<List<ReportRefundRow>> GetRefundsAsync(
-        DateTime from, DateTime to, CancellationToken ct = default)
-    {
-        var dev = await GetDeviseAsync(ct);
-        await using var db = await _dbFactory.CreateDbContextAsync(ct);
-        var toEnd = to.Date.AddDays(1);
-
-        var avoirs = await db.Avoirs.AsNoTracking()
-            .Where(a => a.Date >= from && a.Date < toEnd)
-            .OrderByDescending(a => a.Date)
-            .Select(a => new
-            {
-                a.Id,
-                a.Numero,
-                a.Date,
-                a.ClientId,
-                a.Motif,
-                a.RetourMarchandise,
-                Lignes = a.Lignes!.Select(l => new
-                {
-                    l.Quantite, l.PrixUnitaireHT, l.TauxTVA
-                }).ToList()
-            })
-            .ToListAsync(ct);
-
-        var clientIds = avoirs.Select(a => a.ClientId).Distinct().ToList();
-        var clients = await db.Tiers.AsNoTracking()
-            .Where(t => clientIds.Contains(t.Id))
-            .Select(t => new { t.Id, t.Nom })
-            .ToListAsync(ct);
-        var clientMap = clients.ToDictionary(c => c.Id);
-
-        return avoirs.Select(a =>
-        {
-            var lignes = a.Lignes.Select(l => new AvoirLigne
-            {
-                Quantite = l.Quantite,
-                PrixUnitaireHT = l.PrixUnitaireHT,
-                TauxTVA = l.TauxTVA
-            }).ToList();
-            return new ReportRefundRow(
-                a.Numero ?? string.Empty,
-                a.Date,
-                clientMap.GetValueOrDefault(a.ClientId)?.Nom ?? string.Empty,
-                a.Motif ?? string.Empty,
-                a.RetourMarchandise,
-                DocumentTotalsHelper.AvoirTotals(lignes).ttc,
-                dev);
-        }).ToList();
-    }
-
     public async Task<List<ReportDailySaleRow>> GetDailySalesAsync(
         DateTime from, DateTime to, CancellationToken ct = default)
     {
@@ -565,7 +514,6 @@ public sealed class ReportService : IReportService
         var typeMarge = _locale.T("Reports_TypeSaleMargin");
         var typeAchat = _locale.T("Reports_TypePurchase");
         var typeCharge = _locale.T("Reports_TypeCharge");
-        var typeAvoirClient = _locale.T("Reports_TypeAvoirClient");
         var typeAvoirFournisseur = _locale.T("Reports_TypeAvoirFournisseur");
 
         var factures = await db.Factures.AsNoTracking()
@@ -587,26 +535,7 @@ public sealed class ReportService : IReportService
             })
             .ToListAsync(ct);
 
-        var avoirsClient = await db.Avoirs.AsNoTracking()
-            .Where(a => a.Date >= from && a.Date < toEnd)
-            .Select(a => new
-            {
-                a.Numero,
-                a.Date,
-                Lignes = a.Lignes!.Select(l => new
-                {
-                    l.ProduitId,
-                    l.ServiceId,
-                    l.Quantite,
-                    l.PrixUnitaireHT,
-                    l.Remise,
-                    l.TauxTVA
-                }).ToList()
-            })
-            .ToListAsync(ct);
-
         var allProdIds = factures.SelectMany(f => f.Lignes).Where(l => l.ProduitId is > 0).Select(l => l.ProduitId!.Value)
-            .Concat(avoirsClient.SelectMany(a => a.Lignes).Where(l => l.ProduitId is > 0).Select(l => l.ProduitId!.Value))
             .Distinct()
             .ToList();
         var prodMap = allProdIds.Count == 0
@@ -616,7 +545,6 @@ public sealed class ReportService : IReportService
                 .ToDictionaryAsync(p => p.Id, p => p.PrixAchatHT, ct);
 
         var allSvcIds = factures.SelectMany(f => f.Lignes).Where(l => l.ServiceId is > 0).Select(l => l.ServiceId!.Value)
-            .Concat(avoirsClient.SelectMany(a => a.Lignes).Where(l => l.ServiceId is > 0).Select(l => l.ServiceId!.Value))
             .Distinct()
             .ToList();
         var svcMap = allSvcIds.Count == 0
@@ -626,7 +554,6 @@ public sealed class ReportService : IReportService
                 .ToDictionaryAsync(s => s.Id, s => s.CoutHT, ct);
 
         decimal totalMargin = 0;
-        decimal totalAvoirsClient = 0;
         foreach (var f in factures)
         {
             var factor = 1 - f.RemiseGlobale / 100m;
@@ -652,29 +579,6 @@ public sealed class ReportService : IReportService
                 profit,
                 dev,
                 profit >= 0));
-        }
-
-        foreach (var a in avoirsClient)
-        {
-            var lignes = a.Lignes.Select(l => new AvoirLigne
-            {
-                Quantite = l.Quantite,
-                PrixUnitaireHT = l.PrixUnitaireHT,
-                Remise = l.Remise,
-                TauxTVA = l.TauxTVA
-            }).ToList();
-            // Same as avoir fournisseur: use the full credit-note TTC
-            var (_, _, ttc) = DocumentTotalsHelper.AvoirTotals(lignes);
-            totalAvoirsClient += ttc;
-            rows.Add(new ReportProfitChargeRow(
-                ReportProfitChargeKind.AvoirClient,
-                typeAvoirClient,
-                a.Numero ?? string.Empty,
-                a.Date,
-                ttc,
-                -ttc,
-                dev,
-                false));
         }
 
         var facturesFournisseur = await db.FacturesFournisseurs.AsNoTracking()
@@ -787,12 +691,11 @@ public sealed class ReportService : IReportService
         }
 
         var sorted = rows.OrderByDescending(r => r.Date).ThenBy(r => r.TypeLabel).ToList();
-        var net = totalMargin - totalAvoirsClient - totalPurchases + totalAvoirsFournisseur - totalCharges;
+        var net = totalMargin - totalPurchases + totalAvoirsFournisseur - totalCharges;
 
         return new ReportProfitChargesResult
         {
             TotalSalesMargin = totalMargin,
-            TotalAvoirsClient = totalAvoirsClient,
             TotalPurchases = totalPurchases,
             TotalAvoirsFournisseur = totalAvoirsFournisseur,
             TotalCharges = totalCharges,
@@ -835,44 +738,13 @@ public sealed class ReportService : IReportService
                 select new { ClientId = g.Key, Total = g.Sum(x => x.Montant) })
             .ToDictionaryAsync(x => x.ClientId, x => x.Total, ct);
 
-        var avoirs = await db.Avoirs.AsNoTracking()
-            .Where(a => a.Date < toEnd)
-            .Select(a => new
-            {
-                a.ClientId,
-                Lignes = a.Lignes!.Select(l => new
-                {
-                    l.Quantite,
-                    l.PrixUnitaireHT,
-                    l.Remise,
-                    l.TauxTVA
-                }).ToList()
-            })
-            .ToListAsync(ct);
-
-        var avoirByClient = new Dictionary<int, decimal>();
-        foreach (var a in avoirs)
-        {
-            var lignes = a.Lignes.Select(l => new AvoirLigne
-            {
-                Quantite = l.Quantite,
-                PrixUnitaireHT = l.PrixUnitaireHT,
-                Remise = l.Remise,
-                TauxTVA = l.TauxTVA
-            }).ToList();
-            var ttc = DocumentTotalsHelper.AvoirTotals(lignes).ttc;
-            if (ttc <= 0) continue;
-            avoirByClient[a.ClientId] = avoirByClient.GetValueOrDefault(a.ClientId) + ttc;
-        }
-
         var rows = new List<ReportZakatClientRow>();
         decimal totalBalances = 0;
         foreach (var c in clients.OrderBy(c => c.Nom))
         {
             var factures = factureByClient.GetValueOrDefault(c.Id);
-            var avoirsTtc = avoirByClient.GetValueOrDefault(c.Id);
             var paiements = paiementByClient.GetValueOrDefault(c.Id);
-            var solde = factures - avoirsTtc - paiements;
+            var solde = factures - paiements;
             if (Math.Abs(solde) < 0.01m) continue;
 
             totalBalances += solde;

@@ -23,11 +23,6 @@ public static class MouvementStockQueries
              && db.BonsSortie.Any(bs =>
                  bs.Id == m.OrigineId
                  && db.Tiers.Any(tier => tier.Id == bs.ClientId && tier.Nom.ToLower().Contains(t))))
-            || (m.OrigineType == StockMovementService.OrigineTypeAvoir
-                && m.OrigineId != null
-                && db.Avoirs.Any(a =>
-                    a.Id == m.OrigineId
-                    && db.Tiers.Any(tier => tier.Id == a.ClientId && tier.Nom.ToLower().Contains(t))))
             || (m.OrigineType == StockMovementService.OrigineTypeBonReception
                 && m.OrigineId != null
                 && db.BonsReception.Any(br =>

@@ -359,8 +359,6 @@ public partial class ProduitsViewModel : BaseViewModel
             return _locale.T("Prod_BlockBR");
         if (await db.FactureLignes.AsNoTracking().AnyAsync(l => l.ProduitId == produitId, cancellationToken))
             return _locale.T("Prod_BlockFact");
-        if (await db.AvoirLignes.AsNoTracking().AnyAsync(l => l.ProduitId == produitId, cancellationToken))
-            return _locale.T("Prod_BlockAvoir");
         if (await db.BonSortieProduitLignes.AsNoTracking().AnyAsync(l => l.ProduitId == produitId, cancellationToken))
             return _locale.T("Prod_BlockFact");
         if (await db.ReservationProduitLignes.AsNoTracking().AnyAsync(l => l.ProduitId == produitId, cancellationToken))

@@ -3,7 +3,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GestionCommerciale.Modules.Auth.Services;
 using GestionCommerciale.Modules.AvoirFournisseur.ViewModels;
-using GestionCommerciale.Modules.Facturation.ViewModels;
 using GestionCommerciale.Modules.Reception.ViewModels;
 using GestionCommerciale.Modules.Reservation.ViewModels;
 using GestionCommerciale.Modules.Stock;
@@ -201,11 +200,6 @@ public partial class StockMainViewModel : BaseViewModel
             .Select(m => m.OrigineId!.Value)
             .Distinct()
             .ToList();
-        var avoirIds = movements
-            .Where(m => m.OrigineType == StockMovementService.OrigineTypeAvoir && m.OrigineId.HasValue)
-            .Select(m => m.OrigineId!.Value)
-            .Distinct()
-            .ToList();
         var avoirFournisseurIds = movements
             .Where(m => m.OrigineType == StockMovementService.OrigineTypeAvoirFournisseur && m.OrigineId.HasValue)
             .Select(m => m.OrigineId!.Value)
@@ -231,13 +225,6 @@ public partial class StockMainViewModel : BaseViewModel
                 .Select(b => new { b.Id, b.FournisseurId })
                 .ToListAsync(cancellationToken);
 
-        var avoirParties = avoirIds.Count == 0
-            ? []
-            : await db.Avoirs.AsNoTracking()
-                .Where(a => avoirIds.Contains(a.Id))
-                .Select(a => new { a.Id, a.ClientId })
-                .ToListAsync(cancellationToken);
-
         var avoirFournisseurParties = avoirFournisseurIds.Count == 0
             ? []
             : await db.AvoirsFournisseurs.AsNoTracking()
@@ -247,7 +234,6 @@ public partial class StockMainViewModel : BaseViewModel
 
         var tierIds = locParties.Select(x => x.ClientId)
             .Concat(brParties.Select(x => x.FournisseurId))
-            .Concat(avoirParties.Select(x => x.ClientId))
             .Concat(avoirFournisseurParties.Select(x => x.FournisseurId))
             .Distinct()
             .ToList();
@@ -260,7 +246,6 @@ public partial class StockMainViewModel : BaseViewModel
 
         var locMap = locParties.ToDictionary(x => x.Id, x => tierNames.GetValueOrDefault(x.ClientId, string.Empty));
         var brMap = brParties.ToDictionary(x => x.Id, x => tierNames.GetValueOrDefault(x.FournisseurId, string.Empty));
-        var avoirMap = avoirParties.ToDictionary(x => x.Id, x => tierNames.GetValueOrDefault(x.ClientId, string.Empty));
         var avoirFournisseurMap = avoirFournisseurParties.ToDictionary(x => x.Id, x => tierNames.GetValueOrDefault(x.FournisseurId, string.Empty));
 
         var locPriceMap = locIds.Count == 0
@@ -281,15 +266,6 @@ public partial class StockMainViewModel : BaseViewModel
                 .GroupBy(l => (l.BRId, l.ProduitId))
                 .ToDictionary(g => g.Key, g => g.Last().PrixUnitaireHT);
 
-        var avoirPriceMap = avoirIds.Count == 0
-            ? new Dictionary<(int, int), decimal>()
-            : (await db.AvoirLignes.AsNoTracking()
-                .Where(l => avoirIds.Contains(l.AvoirId) && l.ProduitId != null)
-                .Select(l => new { l.AvoirId, ProduitId = l.ProduitId!.Value, l.PrixUnitaireHT })
-                .ToListAsync(cancellationToken))
-                .GroupBy(l => (l.AvoirId, l.ProduitId))
-                .ToDictionary(g => g.Key, g => g.Last().PrixUnitaireHT);
-
         var avoirFournisseurPriceMap = avoirFournisseurIds.Count == 0
             ? new Dictionary<(int, int), decimal>()
             : (await db.AvoirFournisseurLignes.AsNoTracking()
@@ -305,7 +281,6 @@ public partial class StockMainViewModel : BaseViewModel
             {
                 StockMovementService.OrigineTypeLocation when m.OrigineId is int locId => locMap.GetValueOrDefault(locId, string.Empty),
                 StockMovementService.OrigineTypeBonReception when m.OrigineId is int brId => brMap.GetValueOrDefault(brId, string.Empty),
-                StockMovementService.OrigineTypeAvoir when m.OrigineId is int avoirId => avoirMap.GetValueOrDefault(avoirId, string.Empty),
                 StockMovementService.OrigineTypeAvoirFournisseur when m.OrigineId is int avfId => avoirFournisseurMap.GetValueOrDefault(avfId, string.Empty),
                 _ => string.Empty
             };
@@ -319,7 +294,6 @@ public partial class StockMainViewModel : BaseViewModel
                 {
                     StockMovementService.OrigineTypeLocation when locPriceMap.TryGetValue((docId, m.ProduitId), out var locP) => locP,
                     StockMovementService.OrigineTypeBonReception when brPriceMap.TryGetValue((docId, m.ProduitId), out var brP) => brP,
-                    StockMovementService.OrigineTypeAvoir when avoirPriceMap.TryGetValue((docId, m.ProduitId), out var avP) => avP,
                     StockMovementService.OrigineTypeAvoirFournisseur when avoirFournisseurPriceMap.TryGetValue((docId, m.ProduitId), out var avfP) => avfP,
                     _ => null
                 };
@@ -398,13 +372,6 @@ public partial class StockMainViewModel : BaseViewModel
             case StockMovementService.OrigineTypeBonReception:
             {
                 var vm = _sp.GetRequiredService<BREditViewModel>();
-                vm.Load(id);
-                _workspace.Open(vm);
-                break;
-            }
-            case StockMovementService.OrigineTypeAvoir:
-            {
-                var vm = _sp.GetRequiredService<AvoirEditViewModel>();
                 vm.Load(id);
                 _workspace.Open(vm);
                 break;

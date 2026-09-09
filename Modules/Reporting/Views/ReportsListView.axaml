@@ -37,11 +37,7 @@
                   Foreground="{Binding ShowSaleByCustomer, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=fg}"
                   BorderBrush="{Binding ShowSaleByCustomer, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=border}"
                   Command="{Binding GoSaleByCustomerCommand}"/>
-          <Button Content="{Binding BtnRefunds}" Margin="0,0,6,0"
-                  Background="{Binding ShowRefunds, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=bg}"
-                  Foreground="{Binding ShowRefunds, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=fg}"
-                  BorderBrush="{Binding ShowRefunds, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=border}"
-                  Command="{Binding GoRefundsCommand}"/>
+
           <Button Content="{Binding BtnDailySales}" Margin="0,0,6,0"
                   Background="{Binding ShowDailySales, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=bg}"
                   Foreground="{Binding ShowDailySales, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=fg}"
@@ -239,46 +235,6 @@
                 </StackPanel>
               </Border>
 
-              <Border Padding="20,18" CornerRadius="10"
-                      Background="{DynamicResource CourseraSurfaceMutedBrush}"
-                      IsVisible="{Binding ShowEmpty}">
-                <TextBlock Text="{Binding EmptyMessage}" Classes="subtle" TextWrapping="Wrap"
-                           TextAlignment="Center" FontSize="13.5" LineHeight="22"/>
-              </Border>
-            </StackPanel>
-          </Border>
-        </StackPanel>
-
-        <!-- Refunds table -->
-        <StackPanel Spacing="8" IsVisible="{Binding ShowRefunds}">
-          <Border Padding="16" Background="{DynamicResource CourseraSurfaceBrush}"
-                  BorderBrush="{DynamicResource CourseraBorderBrush}" BorderThickness="1" CornerRadius="12">
-            <StackPanel Spacing="8">
-              <ItemsControl ItemsSource="{Binding Refunds}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="vm:ReportRefundRow">
-                    <Border Padding="10,8" Margin="0,0,0,4"
-                            Background="{DynamicResource CourseraSurfaceMutedBrush}"
-                            CornerRadius="8">
-                      <Grid ColumnDefinitions="1*,1*,2*,1*,1*,1*">
-                        <TextBlock Grid.Column="0" Text="{Binding Numero}" FontWeight="SemiBold"
-                                   FontSize="13" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Column="1" Text="{Binding LblDate}" FontSize="13"
-                                   VerticalAlignment="Center"/>
-                        <TextBlock Grid.Column="2" Text="{Binding Client}" FontSize="13"
-                                   VerticalAlignment="Center"/>
-                        <TextBlock Grid.Column="3" Text="{Binding Motif}" Classes="subtle"
-                                   FontSize="12" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Column="4" Text="{Binding LblRetour}" FontSize="13"
-                                   VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                        <TextBlock Grid.Column="5" Text="{Binding LblTotal}" FontWeight="SemiBold"
-                                   FontSize="13" VerticalAlignment="Center" HorizontalAlignment="Right"
-                                   Foreground="{DynamicResource CourseraDangerBrush}"/>
-                      </Grid>
-                    </Border>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
               <Border Padding="20,18" CornerRadius="10"
                       Background="{DynamicResource CourseraSurfaceMutedBrush}"
                       IsVisible="{Binding ShowEmpty}">
@@ -583,7 +539,7 @@
         <!-- Profit & charges report -->
         <StackPanel Spacing="8" IsVisible="{Binding ShowProfitCharges}">
           <!-- Summary cards (Borders = no button hover; Tapped filters) -->
-          <Grid ColumnDefinitions="*,*,*,*,*,*">
+          <Grid ColumnDefinitions="*,*,*,*,*">
             <Border Grid.Column="0" Tag="Margin" Margin="0,0,4,0" Padding="12,12" Cursor="Hand"
                     Background="{DynamicResource CourseraSurfaceBrush}"
                     BorderBrush="{Binding IsProfitFilterMarginActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=border}"
@@ -596,19 +552,8 @@
                            Foreground="{DynamicResource CourseraSuccessBrush}"/>
               </StackPanel>
             </Border>
-            <Border Grid.Column="1" Tag="AvoirsClient" Margin="4,0" Padding="12,12" Cursor="Hand"
-                    Background="{DynamicResource CourseraSurfaceBrush}"
-                    BorderBrush="{Binding IsProfitFilterAvoirsClientActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=border}"
-                    BorderThickness="{Binding IsProfitFilterAvoirsClientActive, Converter={x:Static conv:BoolToThicknessConverter.Instance}}"
-                    CornerRadius="10"
-                    Tapped="OnProfitFilterCardTapped">
-              <StackPanel Spacing="4">
-                <TextBlock Text="{Binding LblProfitChargesAvoirsClientLabel}" Classes="subtle" FontSize="11" TextWrapping="Wrap"/>
-                <TextBlock Text="{Binding LblProfitChargesTotalAvoirsClient}" FontWeight="Bold" FontSize="14"
-                           Foreground="{DynamicResource CourseraDangerBrush}"/>
-              </StackPanel>
-            </Border>
-            <Border Grid.Column="2" Tag="Purchases" Margin="4,0" Padding="12,12" Cursor="Hand"
+
+            <Border Grid.Column="1" Tag="Purchases" Margin="4,0" Padding="12,12" Cursor="Hand"
                     Background="{DynamicResource CourseraSurfaceBrush}"
                     BorderBrush="{Binding IsProfitFilterPurchasesActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=border}"
                     BorderThickness="{Binding IsProfitFilterPurchasesActive, Converter={x:Static conv:BoolToThicknessConverter.Instance}}"
@@ -620,7 +565,7 @@
                            Foreground="{DynamicResource CourseraDangerBrush}"/>
               </StackPanel>
             </Border>
-            <Border Grid.Column="3" Tag="AvoirsFournisseur" Margin="4,0" Padding="12,12" Cursor="Hand"
+            <Border Grid.Column="2" Tag="AvoirsFournisseur" Margin="4,0" Padding="12,12" Cursor="Hand"
                     Background="{DynamicResource CourseraSurfaceBrush}"
                     BorderBrush="{Binding IsProfitFilterAvoirsFournisseurActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=border}"
                     BorderThickness="{Binding IsProfitFilterAvoirsFournisseurActive, Converter={x:Static conv:BoolToThicknessConverter.Instance}}"
@@ -632,7 +577,7 @@
                            Foreground="{DynamicResource CourseraSuccessBrush}"/>
               </StackPanel>
             </Border>
-            <Border Grid.Column="4" Tag="Charges" Margin="4,0" Padding="12,12" Cursor="Hand"
+            <Border Grid.Column="3" Tag="Charges" Margin="4,0" Padding="12,12" Cursor="Hand"
                     Background="{DynamicResource CourseraSurfaceBrush}"
                     BorderBrush="{Binding IsProfitFilterChargesActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=border}"
                     BorderThickness="{Binding IsProfitFilterChargesActive, Converter={x:Static conv:BoolToThicknessConverter.Instance}}"
@@ -644,7 +589,7 @@
                            Foreground="{DynamicResource CourseraDangerBrush}"/>
               </StackPanel>
             </Border>
-            <Border Grid.Column="5" Tag="All" Margin="4,0,0,0" Padding="12,12" Cursor="Hand"
+            <Border Grid.Column="4" Tag="All" Margin="4,0,0,0" Padding="12,12" Cursor="Hand"
                     Background="{DynamicResource CourseraSurfaceBrush}"
                     BorderBrush="{DynamicResource CourseraBorderBrush}"
                     BorderThickness="1"

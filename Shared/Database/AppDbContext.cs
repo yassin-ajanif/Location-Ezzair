@@ -33,8 +33,6 @@ public class AppDbContext : DbContext
     public DbSet<Facture> Factures => Set<Facture>();
     public DbSet<FactureLigne> FactureLignes => Set<FactureLigne>();
     public DbSet<Paiement> Paiements => Set<Paiement>();
-    public DbSet<Avoir> Avoirs => Set<Avoir>();
-    public DbSet<AvoirLigne> AvoirLignes => Set<AvoirLigne>();
     public DbSet<AvoirFournisseur> AvoirsFournisseurs => Set<AvoirFournisseur>();
     public DbSet<AvoirFournisseurLigne> AvoirFournisseurLignes => Set<AvoirFournisseurLigne>();
     public DbSet<AppSettingsRow> AppSettings => Set<AppSettingsRow>();
@@ -137,14 +135,6 @@ public class AppDbContext : DbContext
             e.HasIndex(l => l.ServiceId);
         });
 
-        modelBuilder.Entity<AvoirLigne>(e =>
-        {
-            e.HasOne<Service>().WithMany()
-                .HasForeignKey(l => l.ServiceId)
-                .OnDelete(DeleteBehavior.Restrict);
-            e.HasIndex(l => l.ServiceId);
-        });
-
         modelBuilder.Entity<BonCommandeLigne>(e =>
         {
             e.HasOne<Service>().WithMany()
@@ -177,12 +167,6 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<PaiementFournisseur>(e =>
         {
             e.Property(p => p.Mode).HasConversion<int>();
-        });
-
-        modelBuilder.Entity<Avoir>(e =>
-        {
-            e.HasOne(a => a.Facture).WithMany().HasForeignKey(a => a.FactureId).IsRequired(false).OnDelete(DeleteBehavior.SetNull);
-            e.HasMany(a => a.Lignes).WithOne(l => l.Avoir).HasForeignKey(l => l.AvoirId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<AvoirFournisseur>(e =>
