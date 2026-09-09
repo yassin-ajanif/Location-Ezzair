@@ -224,6 +224,7 @@ public partial class AppShellViewModel : BaseViewModel
     {
         var vm = _sp.GetRequiredService<ProductAvailabilityViewModel>();
         _workspace.Open(vm);
+        vm.RefreshOnNavigate();
     }
 
     [RelayCommand]

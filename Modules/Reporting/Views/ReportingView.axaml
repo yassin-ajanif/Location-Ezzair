@@ -43,7 +43,12 @@
                             <TextBlock Grid.Column="1" Text="{Binding Category}" Classes="subtle" FontSize="11"
                                        Margin="10,0,0,0" VerticalAlignment="Top"/>
                           </Grid>
-                          <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" FontSize="13" Classes="subtle"/>
+                          <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding DetailBefore}" Classes="subtle" FontSize="13"/>
+                            <TextBlock Text="{Binding DaysText}" FontSize="13" FontWeight="Bold"
+                                       Foreground="{DynamicResource CourseraDangerBrush}"/>
+                            <TextBlock Text="{Binding DetailAfter}" Classes="subtle" FontSize="13"/>
+                          </StackPanel>
                         </StackPanel>
                       </Grid>
                     </Border>

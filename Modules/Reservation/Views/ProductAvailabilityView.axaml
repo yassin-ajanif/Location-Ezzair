@@ -195,7 +195,11 @@
                         <StackPanel Spacing="2">
                           <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Foreground="White" FontSize="12"
                                      TextWrapping="Wrap"/>
-                          <TextBlock Text="{Binding Detail}" Foreground="White" Opacity="0.9" FontSize="11"/>
+                          <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding DetailBefore}" Foreground="White" Opacity="0.9" FontSize="11"/>
+                            <TextBlock Text="{Binding DaysText}" Foreground="White" FontWeight="Bold" FontSize="11"/>
+                            <TextBlock Text="{Binding DetailAfter}" Foreground="White" Opacity="0.9" FontSize="11"/>
+                          </StackPanel>
                         </StackPanel>
                       </Border>
                       <Border Padding="10,8" CornerRadius="8"
@@ -204,7 +208,11 @@
                         <StackPanel Spacing="2">
                           <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Foreground="White" FontSize="12"
                                      TextWrapping="Wrap"/>
-                          <TextBlock Text="{Binding Detail}" Foreground="White" Opacity="0.9" FontSize="11"/>
+                          <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding DetailBefore}" Foreground="White" Opacity="0.9" FontSize="11"/>
+                            <TextBlock Text="{Binding DaysText}" Foreground="White" FontWeight="Bold" FontSize="11"/>
+                            <TextBlock Text="{Binding DetailAfter}" Foreground="White" Opacity="0.9" FontSize="11"/>
+                          </StackPanel>
                         </StackPanel>
                       </Border>
                     </Panel>

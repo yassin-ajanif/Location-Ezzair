@@ -82,12 +82,15 @@ public sealed class DashboardAlertsService : IDashboardAlertsService
             overdueCount++;
             var client = string.IsNullOrWhiteSpace(row.Client) ? $"#{row.Id}" : row.Client;
             var qty = row.Encore.ToString("N0", CultureInfo.CurrentCulture);
+            var days = daysLate.ToString(CultureInfo.CurrentCulture);
             alerts.Add(new DashboardAlertRow(
                 DashboardAlertKind.ReturnOverdue,
                 DashboardAlertSeverity.Critical,
                 _locale.T("DashAlert_CatOps"),
                 _locale.Tf("DashAlert_OverdueTitle", row.Numero),
-                _locale.Tf("DashAlert_OverdueDetail", client, daysLate.ToString(CultureInfo.CurrentCulture), qty),
+                _locale.Tf("DashAlert_OverdueDetailBefore", client),
+                _locale.Tf("DashAlert_DaysFmt", days),
+                _locale.Tf("DashAlert_OverdueDetailAfter", qty),
                 DashboardAlertNav.BonSortie,
                 row.Id));
         }
@@ -111,13 +114,15 @@ public sealed class DashboardAlertsService : IDashboardAlertsService
         foreach (var row in rows)
         {
             var client = string.IsNullOrWhiteSpace(row.Client) ? $"#{row.Id}" : row.Client;
-            var days = (today - row.DateFinPrevue.Date).Days;
+            var days = (today - row.DateFinPrevue.Date).Days.ToString(CultureInfo.CurrentCulture);
             alerts.Add(new DashboardAlertRow(
                 DashboardAlertKind.SoftReservationExpired,
                 DashboardAlertSeverity.Warning,
                 _locale.T("DashAlert_CatOps"),
                 _locale.Tf("DashAlert_SoftExpiredTitle", row.Numero),
-                _locale.Tf("DashAlert_SoftExpiredDetail", client, days.ToString(CultureInfo.CurrentCulture)),
+                _locale.Tf("DashAlert_SoftExpiredDetailBefore", client),
+                _locale.Tf("DashAlert_DaysFmt", days),
+                string.Empty,
                 DashboardAlertNav.SoftReservation,
                 row.Id));
         }

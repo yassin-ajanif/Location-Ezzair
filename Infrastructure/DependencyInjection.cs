@@ -93,7 +93,7 @@ public static class DependencyInjection
         services.AddTransient<SoftReservationListViewModel>();
         services.AddTransient<SoftReservationEditViewModel>();
         services.AddTransient<EtatClientViewModel>();
-        services.AddTransient<ProductAvailabilityViewModel>();
+        services.AddSingleton<ProductAvailabilityViewModel>();
         services.AddTransient<BRListViewModel>();
         services.AddTransient<BREditViewModel>();
         services.AddTransient<BCListViewModel>();

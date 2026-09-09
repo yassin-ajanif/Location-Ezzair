@@ -29,7 +29,9 @@ public sealed class DashboardAlertRow
         DashboardAlertSeverity severity,
         string category,
         string title,
-        string detail,
+        string detailBefore,
+        string daysText,
+        string detailAfter,
         DashboardAlertNav nav,
         int? entityId,
         string? productLabel = null)
@@ -38,7 +40,9 @@ public sealed class DashboardAlertRow
         Severity = severity;
         Category = category;
         Title = title;
-        Detail = detail;
+        DetailBefore = detailBefore;
+        DaysText = daysText;
+        DetailAfter = detailAfter;
         Nav = nav;
         EntityId = entityId;
         ProductLabel = productLabel;
@@ -48,7 +52,10 @@ public sealed class DashboardAlertRow
     public DashboardAlertSeverity Severity { get; }
     public string Category { get; }
     public string Title { get; }
-    public string Detail { get; }
+    public string DetailBefore { get; }
+    public string DaysText { get; }
+    public string DetailAfter { get; }
+    public string Detail => $"{DetailBefore}{DaysText}{DetailAfter}";
     public DashboardAlertNav Nav { get; }
     public int? EntityId { get; }
     public string? ProductLabel { get; }

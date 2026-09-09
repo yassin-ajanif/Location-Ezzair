@@ -37,7 +37,13 @@ public partial class ProductAvailabilityViewModel : BaseViewModel
         _sp = sp;
         _locale.CultureApplied += (_, _) => RefreshUi();
         RefreshUi();
-        _ = LoadMonthAsync(CancellationToken.None);
+    }
+
+    /// <summary>Keep selection; reload calendar data when returning to the page.</summary>
+    public void RefreshOnNavigate()
+    {
+        if (SelectedProduitId is > 0)
+            _ = LoadMonthAsync(CancellationToken.None);
     }
 
     [ObservableProperty] private string _lblProduct = string.Empty;
@@ -232,17 +238,27 @@ public partial class ProductAvailabilityViewModel : BaseViewModel
                 b.IsSoft,
                 $"{b.Numero} — {b.ClientNom}",
                 _locale.Tf("Avail_BookingDetailFmt", b.DateDebut, b.DateFin, b.QuantiteEncore),
+                string.Empty,
+                string.Empty,
                 IsOverdue: false));
 
         foreach (var b in result.OverdueBookings ?? [])
+        {
+            var daysLate = Math.Max(1, (DateTime.Today - b.DateFin.Date).Days);
+            var before = b.IsSoft
+                ? _locale.Tf("Avail_ExpiredReservationBefore", b.DateFin)
+                : _locale.Tf("Avail_OverdueBookingBefore", b.DateFin);
+            var days = _locale.Tf("Avail_DaysFmt", daysLate);
+            var after = _locale.Tf("Avail_OverdueBookingAfter", b.QuantiteEncore);
             OverdueBookings.Add(new AvailabilityBookingRow(
                 b.Id,
                 b.IsSoft,
                 $"{b.Numero} — {b.ClientNom}",
-                b.IsSoft
-                    ? _locale.Tf("Avail_ExpiredReservationFmt", b.DateFin, b.QuantiteEncore)
-                    : _locale.Tf("Avail_OverdueBookingFmt", b.DateFin, b.QuantiteEncore),
+                before,
+                days,
+                after,
                 IsOverdue: true));
+        }
 
         OnPropertyChanged(nameof(HasBookings));
         OnPropertyChanged(nameof(HasOverdueBookings));
@@ -403,10 +419,14 @@ public sealed record AvailabilityBookingRow(
     int DocumentId,
     bool IsSoft,
     string Title,
-    string Detail,
+    string DetailBefore,
+    string DaysText = "",
+    string DetailAfter = "",
     bool IsOverdue = false)
 {
+    public string Detail => $"{DetailBefore}{DaysText}{DetailAfter}";
     public bool ShowAsBonSortie => !IsSoft;
     public bool ShowAsSoft => IsSoft;
+    public bool HasDaysHighlight => !string.IsNullOrEmpty(DaysText);
 }
 
