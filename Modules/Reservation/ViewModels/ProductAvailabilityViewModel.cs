@@ -9,6 +9,7 @@ using GestionCommerciale.Modules.Reservation.Services;
 using GestionCommerciale.Shared.Helpers;
 using GestionCommerciale.Shared.Services;
 using GestionCommerciale.Shared.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace GestionCommerciale.Modules.Reservation.ViewModels;
 
@@ -17,17 +18,23 @@ public partial class ProductAvailabilityViewModel : BaseViewModel
     private readonly IReservationAvailabilityService _availability;
     private readonly ICatalogSearchService _catalog;
     private readonly ILocaleService _locale;
+    private readonly WorkspaceNavigator _workspace;
+    private readonly IServiceProvider _sp;
     private CancellationTokenSource? _searchCts;
     private bool _suppressPick;
 
     public ProductAvailabilityViewModel(
         IReservationAvailabilityService availability,
         ICatalogSearchService catalog,
-        ILocaleService locale)
+        ILocaleService locale,
+        WorkspaceNavigator workspaceNavigator,
+        IServiceProvider sp)
     {
         _availability = availability;
         _catalog = catalog;
         _locale = locale;
+        _workspace = workspaceNavigator;
+        _sp = sp;
         _locale.CultureApplied += (_, _) => RefreshUi();
         RefreshUi();
         _ = LoadMonthAsync(CancellationToken.None);
@@ -42,6 +49,7 @@ public partial class ProductAvailabilityViewModel : BaseViewModel
     [ObservableProperty] private string _lblLegendFull = string.Empty;
     [ObservableProperty] private string _lblFreeWindows = string.Empty;
     [ObservableProperty] private string _lblBookings = string.Empty;
+    [ObservableProperty] private string _lblOverdueTitle = string.Empty;
     [ObservableProperty] private string _lblEmptyProduct = string.Empty;
     [ObservableProperty] private string _lblNoFree = string.Empty;
     [ObservableProperty] private string _lblNoBookings = string.Empty;
@@ -62,11 +70,13 @@ public partial class ProductAvailabilityViewModel : BaseViewModel
     public ObservableCollection<string> WeekdayHeaders { get; } = [];
     public ObservableCollection<AvailabilityFreeWindowRow> FreeWindows { get; } = [];
     public ObservableCollection<AvailabilityBookingRow> Bookings { get; } = [];
+    public ObservableCollection<AvailabilityBookingRow> OverdueBookings { get; } = [];
 
     public AutoCompleteFilterPredicate<object?> CatalogFilter => DocumentCatalogAutoComplete.ItemFilter;
     public bool HasProduct => SelectedProduitId is > 0;
     public bool HasFreeWindows => FreeWindows.Count > 0;
     public bool HasBookings => Bookings.Count > 0;
+    public bool HasOverdueBookings => OverdueBookings.Count > 0;
 
     private void RefreshUi()
     {
@@ -80,6 +90,7 @@ public partial class ProductAvailabilityViewModel : BaseViewModel
         LblLegendFull = _locale.T("Avail_LegendFull");
         LblFreeWindows = _locale.T("Avail_FreeWindows");
         LblBookings = _locale.T("Avail_Bookings");
+        LblOverdueTitle = _locale.T("Avail_OverdueTitle");
         LblEmptyProduct = _locale.T("Avail_EmptyProduct");
         LblNoFree = _locale.T("Avail_NoFree");
         LblNoBookings = _locale.T("Avail_NoBookings");
@@ -184,9 +195,11 @@ public partial class ProductAvailabilityViewModel : BaseViewModel
         Weeks.Clear();
         FreeWindows.Clear();
         Bookings.Clear();
+        OverdueBookings.Clear();
         StockTotalLabel = string.Empty;
         OnPropertyChanged(nameof(HasFreeWindows));
         OnPropertyChanged(nameof(HasBookings));
+        OnPropertyChanged(nameof(HasOverdueBookings));
 
         if (SelectedProduitId is not { } pid)
             return;
@@ -227,11 +240,44 @@ public partial class ProductAvailabilityViewModel : BaseViewModel
 
         foreach (var b in result.UpcomingBookings)
             Bookings.Add(new AvailabilityBookingRow(
+                b.Id,
+                b.IsSoft,
                 $"{b.Numero} — {b.ClientNom}",
-                _locale.Tf("Avail_BookingDetailFmt", b.DateDebut, b.DateFin, b.QuantiteEncore)));
+                _locale.Tf("Avail_BookingDetailFmt", b.DateDebut, b.DateFin, b.QuantiteEncore),
+                IsOverdue: false));
+
+        foreach (var b in result.OverdueBookings ?? [])
+            OverdueBookings.Add(new AvailabilityBookingRow(
+                b.Id,
+                b.IsSoft,
+                $"{b.Numero} — {b.ClientNom}",
+                b.IsSoft
+                    ? _locale.Tf("Avail_ExpiredReservationFmt", b.DateFin, b.QuantiteEncore)
+                    : _locale.Tf("Avail_OverdueBookingFmt", b.DateFin, b.QuantiteEncore),
+                IsOverdue: true));
 
         OnPropertyChanged(nameof(HasFreeWindows));
         OnPropertyChanged(nameof(HasBookings));
+        OnPropertyChanged(nameof(HasOverdueBookings));
+    }
+
+    [RelayCommand]
+    private void OpenBooking(AvailabilityBookingRow? row)
+    {
+        if (row is null || row.DocumentId <= 0) return;
+
+        if (row.IsSoft)
+        {
+            var soft = _sp.GetRequiredService<SoftReservationEditViewModel>();
+            soft.Load(row.DocumentId);
+            _workspace.Open(soft);
+        }
+        else
+        {
+            var bs = _sp.GetRequiredService<ReservationEditViewModel>();
+            bs.Load(row.DocumentId);
+            _workspace.Open(bs);
+        }
     }
 }
 
@@ -367,5 +413,15 @@ public partial class AvailabilityDayCell : ObservableObject
 }
 
 public sealed record AvailabilityFreeWindowRow(string Label);
-public sealed record AvailabilityBookingRow(string Title, string Detail);
+
+public sealed record AvailabilityBookingRow(
+    int DocumentId,
+    bool IsSoft,
+    string Title,
+    string Detail,
+    bool IsOverdue = false)
+{
+    public bool ShowAsBonSortie => !IsSoft;
+    public bool ShowAsSoft => IsSoft;
+}
 

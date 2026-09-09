@@ -3,7 +3,9 @@
              xmlns:vm="using:GestionCommerciale.Modules.Reservation.ViewModels"
              xmlns:cat="using:GestionCommerciale.Shared.Helpers"
              x:Class="GestionCommerciale.Modules.Reservation.Views.ProductAvailabilityView"
-             x:DataType="vm:ProductAvailabilityViewModel">
+             x:Name="AvailRoot"
+             x:DataType="vm:ProductAvailabilityViewModel"
+             x:CompileBindings="False">
   <Grid RowDefinitions="Auto,*" Margin="4">
     <StackPanel Spacing="12">
       <TextBlock Text="{Binding Title}" FontSize="20" FontWeight="SemiBold"/>
@@ -191,6 +193,48 @@
           </StackPanel>
 
           <StackPanel Spacing="8">
+            <TextBlock Text="{Binding LblOverdueTitle}" FontWeight="SemiBold"
+                       IsVisible="{Binding HasOverdueBookings}"/>
+            <ItemsControl ItemsSource="{Binding OverdueBookings}" IsVisible="{Binding HasOverdueBookings}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Spacing="8"/>
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="vm:AvailabilityBookingRow">
+                  <Button Classes="dash-alert-item"
+                          HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                          Padding="0" Margin="0"
+                          Command="{Binding #AvailRoot.DataContext.OpenBookingCommand}"
+                          CommandParameter="{Binding}">
+                    <Panel>
+                      <Border Padding="10,8" CornerRadius="8"
+                              Background="#DC2626" BorderBrush="#B91C1C" BorderThickness="1"
+                              IsVisible="{Binding ShowAsBonSortie}">
+                        <StackPanel Spacing="2">
+                          <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Foreground="White" FontSize="12"
+                                     TextWrapping="Wrap"/>
+                          <TextBlock Text="{Binding Detail}" Foreground="White" Opacity="0.9" FontSize="11"/>
+                        </StackPanel>
+                      </Border>
+                      <Border Padding="10,8" CornerRadius="8"
+                              Background="#EA580C" BorderBrush="#C2410C" BorderThickness="1"
+                              IsVisible="{Binding ShowAsSoft}">
+                        <StackPanel Spacing="2">
+                          <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Foreground="White" FontSize="12"
+                                     TextWrapping="Wrap"/>
+                          <TextBlock Text="{Binding Detail}" Foreground="White" Opacity="0.9" FontSize="11"/>
+                        </StackPanel>
+                      </Border>
+                    </Panel>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+
+          <StackPanel Spacing="8">
             <TextBlock Text="{Binding LblBookings}" FontWeight="SemiBold"/>
             <TextBlock Text="{Binding LblNoBookings}" Opacity="0.65" IsVisible="{Binding !HasBookings}"/>
             <ItemsControl ItemsSource="{Binding Bookings}" IsVisible="{Binding HasBookings}">
@@ -201,14 +245,20 @@
               </ItemsControl.ItemsPanel>
               <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="vm:AvailabilityBookingRow">
-                  <Border Padding="10,8" CornerRadius="8"
-                          Background="#EFF6FF" BorderBrush="#BFDBFE" BorderThickness="1">
-                    <StackPanel Spacing="2">
-                      <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Foreground="#1E3A5F" FontSize="12"
-                                 TextWrapping="Wrap"/>
-                      <TextBlock Text="{Binding Detail}" Foreground="#1E3A5F" Opacity="0.8" FontSize="11"/>
-                    </StackPanel>
-                  </Border>
+                  <Button Classes="dash-alert-item"
+                          HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                          Padding="0" Margin="0"
+                          Command="{Binding #AvailRoot.DataContext.OpenBookingCommand}"
+                          CommandParameter="{Binding}">
+                    <Border Padding="10,8" CornerRadius="8"
+                            Background="#EFF6FF" BorderBrush="#BFDBFE" BorderThickness="1">
+                      <StackPanel Spacing="2">
+                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Foreground="#1E3A5F" FontSize="12"
+                                   TextWrapping="Wrap"/>
+                        <TextBlock Text="{Binding Detail}" Foreground="#1E3A5F" Opacity="0.8" FontSize="11"/>
+                      </StackPanel>
+                    </Border>
+                  </Button>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>

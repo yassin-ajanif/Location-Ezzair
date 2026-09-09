@@ -45,11 +45,14 @@ public sealed record ProductAvailabilityDay(
     decimal DispoStock = 0);
 
 public sealed record ProductAvailabilityBooking(
+    int Id,
     string Numero,
     string ClientNom,
     DateTime DateDebut,
     DateTime DateFin,
-    decimal QuantiteEncore);
+    decimal QuantiteEncore,
+    bool IsSoft,
+    bool IsOverdue = false);
 
 public sealed record ProductAvailabilityFreeWindow(
     DateTime DateDebut,
@@ -64,7 +67,8 @@ public sealed record ProductAvailabilityMonthResult(
     DateTime Month,
     IReadOnlyList<ProductAvailabilityDay> Days,
     IReadOnlyList<ProductAvailabilityBooking> UpcomingBookings,
-    IReadOnlyList<ProductAvailabilityFreeWindow> FreeWindows);
+    IReadOnlyList<ProductAvailabilityFreeWindow> FreeWindows,
+    IReadOnlyList<ProductAvailabilityBooking>? OverdueBookings = null);
 
 public interface IReservationAvailabilityService
 {

@@ -263,8 +263,11 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
         var dispoStock = produit.StockActuel;
 
         var today = DateTime.Today;
-        // Display-only: qty still out after planned end. Does not change dispo / sortie / colors.
-        var retardQty = openLines.Where(l => l.DateFin < today).Sum(l => l.Encore);
+        // Display-only: still past planned end. Day "retard" chip = BS only (physical out).
+        // Sidebar list = BS + confirmed soft reservations past fin prévue.
+        var overdueBsLines = openLines.Where(l => l.DateFin < today).ToList();
+        var overdueSoftLines = softLines.Where(l => l.DateFin < today).ToList();
+        var retardQty = overdueBsLines.Sum(l => l.Encore);
 
         // Occupancy = planned date ranges only (début → retour effectif / fin prévue).
         var relevant = openLines
@@ -272,7 +275,11 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
             .Where(l => PeriodsOverlap(gridStart, gridEnd, l.DateDebut, l.DateFin))
             .ToList();
 
-        var clientIds = relevant.Select(l => l.ClientId).Distinct().ToList();
+        var clientIds = relevant.Select(l => l.ClientId)
+            .Concat(overdueBsLines.Select(l => l.ClientId))
+            .Concat(overdueSoftLines.Select(l => l.ClientId))
+            .Distinct()
+            .ToList();
         var clientNames = clientIds.Count == 0
             ? new Dictionary<int, string>()
             : await db.Tiers.AsNoTracking()
@@ -330,13 +337,46 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
                 var first = g.First();
                 clientNames.TryGetValue(first.ClientId, out var nom);
                 return new ProductAvailabilityBooking(
+                    first.Id,
                     first.Numero,
                     string.IsNullOrWhiteSpace(nom) ? $"#{first.ClientId}" : nom,
                     first.DateDebut,
                     first.DateFin,
-                    g.Sum(x => x.Encore));
+                    g.Sum(x => x.Encore),
+                    first.IsSoft);
             })
             .OrderBy(b => b.DateDebut)
+            .ThenBy(b => b.Numero)
+            .ToList();
+
+        var overdueBookings = overdueBsLines
+            .Select(l => new { l.Id, l.Numero, l.ClientId, l.DateDebut, l.DateFin, l.Encore, IsSoft = false })
+            .Concat(overdueSoftLines.Select(l => new
+            {
+                l.Id,
+                l.Numero,
+                l.ClientId,
+                l.DateDebut,
+                l.DateFin,
+                l.Encore,
+                IsSoft = true
+            }))
+            .GroupBy(l => (l.IsSoft, l.Id, l.Numero))
+            .Select(g =>
+            {
+                var first = g.First();
+                clientNames.TryGetValue(first.ClientId, out var nom);
+                return new ProductAvailabilityBooking(
+                    first.Id,
+                    first.Numero,
+                    string.IsNullOrWhiteSpace(nom) ? $"#{first.ClientId}" : nom,
+                    first.DateDebut,
+                    first.DateFin,
+                    g.Sum(x => x.Encore),
+                    first.IsSoft,
+                    IsOverdue: true);
+            })
+            .OrderBy(b => b.DateFin)
             .ThenBy(b => b.Numero)
             .ToList();
 
@@ -352,7 +392,8 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
             monthStart,
             days,
             upcomingBookings,
-            freeWindows);
+            freeWindows,
+            overdueBookings);
     }
 
     private static List<ProductAvailabilityFreeWindow> BuildFreeWindows(
