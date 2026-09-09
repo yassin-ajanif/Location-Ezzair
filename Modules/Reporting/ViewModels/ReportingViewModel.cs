@@ -7,7 +7,6 @@ using GestionCommerciale.Modules.Auth.Services;
 using GestionCommerciale.Modules.Facturation.ViewModels;
 using GestionCommerciale.Modules.Reporting.Services;
 using GestionCommerciale.Modules.Reservation.ViewModels;
-using GestionCommerciale.Modules.Stock;
 using GestionCommerciale.Modules.Stock.ViewModels;
 using GestionCommerciale.Shared.Database;
 using GestionCommerciale.Shared.Helpers;
@@ -59,8 +58,6 @@ public partial class ReportingViewModel : BaseViewModel
     [ObservableProperty] private string _lblKpiStrip = string.Empty;
     [ObservableProperty] private string _lblTopClients = string.Empty;
     [ObservableProperty] private string _lblTopProducts = string.Empty;
-    [ObservableProperty] private string _lblStockAlerts = string.Empty;
-    [ObservableProperty] private string _lblUnpaid = string.Empty;
     [ObservableProperty] private string _lblDashAlerts = string.Empty;
     [ObservableProperty] private string _dashAlertHint = string.Empty;
     [ObservableProperty] private string _lineCaCurrent = string.Empty;
@@ -81,20 +78,14 @@ public partial class ReportingViewModel : BaseViewModel
 
     [ObservableProperty] private bool _showEmptyTopClients;
     [ObservableProperty] private bool _showEmptyTopProducts;
-    [ObservableProperty] private bool _showEmptyStock;
-    [ObservableProperty] private bool _showEmptyUnpaid;
     [ObservableProperty] private bool _showEmptyDashAlerts;
 
     [ObservableProperty] private string _emptyMessageTopClients = string.Empty;
     [ObservableProperty] private string _emptyMessageTopProducts = string.Empty;
-    [ObservableProperty] private string _emptyMessageStock = string.Empty;
-    [ObservableProperty] private string _emptyMessageUnpaid = string.Empty;
     [ObservableProperty] private string _emptyMessageDashAlerts = string.Empty;
 
     public ObservableCollection<ReportRankRow> TopClients { get; } = [];
     public ObservableCollection<ReportRankRow> TopProduits { get; } = [];
-    public ObservableCollection<ReportStockAlertRow> StockAlertes { get; } = [];
-    public ObservableCollection<ReportUnpaidRow> FacturesImpayees { get; } = [];
     public ObservableCollection<DashboardAlertRow> DashAlerts { get; } = [];
 
     private void RefreshReportingUi()
@@ -106,16 +97,12 @@ public partial class ReportingViewModel : BaseViewModel
         LblKpiStrip = _locale.T("Report_LblKpiStrip");
         LblTopClients = _locale.T("Report_LblTopClients");
         LblTopProducts = _locale.T("Report_LblTopProducts");
-        LblStockAlerts = _locale.T("Report_LblStockAlerts");
-        LblUnpaid = _locale.T("Report_LblUnpaid");
         LblDashAlerts = _locale.T("Report_LblDashAlerts");
         DashAlertHint = _locale.T("Report_DashAlertHint");
         LineCaCurrent = _locale.Tf("Report_FmtCurrentMonth", CaMoisCourant);
         LineCaPrev = _locale.Tf("Report_FmtPrevMonth", CaMoisPrecedent);
         EmptyMessageTopClients = _locale.T("Report_EmptyTopClients");
         EmptyMessageTopProducts = _locale.T("Report_EmptyTopProducts");
-        EmptyMessageStock = _locale.T("Report_EmptyStock");
-        EmptyMessageUnpaid = _locale.T("Report_EmptyUnpaid");
         EmptyMessageDashAlerts = _locale.T("Report_EmptyDashAlerts");
     }
 
@@ -227,16 +214,6 @@ public partial class ReportingViewModel : BaseViewModel
         foreach (var r in data.TopProduits)
             TopProduits.Add(r);
         ShowEmptyTopProducts = TopProduits.Count == 0;
-
-        StockAlertes.Clear();
-        foreach (var r in data.StockAlertes)
-            StockAlertes.Add(r);
-        ShowEmptyStock = StockAlertes.Count == 0;
-
-        FacturesImpayees.Clear();
-        foreach (var r in data.FacturesImpayees)
-            FacturesImpayees.Add(r);
-        ShowEmptyUnpaid = FacturesImpayees.Count == 0;
     }
 
     private async Task<ReportData> LoadDataAsync(CancellationToken ct)
@@ -320,21 +297,6 @@ public partial class ReportingViewModel : BaseViewModel
                 share));
         }
 
-        var stockAlertRows = new List<ReportStockAlertRow>();
-        var alerts = await db.Produits.AsNoTracking()
-            .Where(p => p.Actif && p.StockMinimum > 0 && p.StockActuel < p.StockMinimum)
-            .SelectForListWithoutImageData()
-            .Take(100)
-            .ToListAsync(ct);
-        foreach (var p in alerts)
-        {
-            stockAlertRows.Add(new ReportStockAlertRow(
-                p.Reference,
-                _locale.Tf("Report_FmtStockDetail",
-                    p.StockActuel.ToString("N2", CultureInfo.CurrentCulture),
-                    p.StockMinimum.ToString("N2", CultureInfo.CurrentCulture))));
-        }
-
         var actifs = await db.Produits.AsNoTracking().CountAsync(p => p.Actif, ct);
         var sousMin = await db.Produits.AsNoTracking().CountAsync(
             p => p.Actif && p.StockMinimum > 0 && p.StockActuel < p.StockMinimum, ct);
@@ -343,50 +305,19 @@ public partial class ReportingViewModel : BaseViewModel
         var unpaidProj = await db.Factures.AsNoTracking()
             .Where(f => !f.EstPayee)
             .Select(f => new {
-                f.Numero,
-                f.DateEcheance,
                 TTC = f.Lignes.Sum(l => l.Quantite * l.PrixUnitaireHT * (1m - l.Remise / 100m) * (1m + l.TauxTVA / 100m)) * (1m - f.RemiseGlobale / 100m),
                 Paye = f.Paiements.Sum(p => (decimal?)p.Montant) ?? 0m
             })
-            .OrderBy(f => f.DateEcheance)
-            .Take(200)
             .ToListAsync(ct);
 
         decimal encoursTotal = 0;
         var encoursCount = 0;
-        var unpaidRows = new List<ReportUnpaidRow>();
         foreach (var f in unpaidProj)
         {
             var reste = f.TTC - f.Paye;
             if (reste <= 0.01m) continue;
-
             encoursTotal += reste;
             encoursCount++;
-
-            var due = f.DateEcheance.Date;
-            var daysFromDue = (now - due).Days;
-            string dueStatus;
-            var isOverdue = daysFromDue > 0;
-            var isDueSoon = false;
-            if (daysFromDue > 0)
-                dueStatus = _locale.Tf("Report_UnpaidOverdueFmt", daysFromDue.ToString(CultureInfo.CurrentCulture));
-            else if (daysFromDue == 0)
-                dueStatus = _locale.T("Report_UnpaidDueToday");
-            else
-            {
-                var until = -daysFromDue;
-                dueStatus = _locale.Tf("Report_UnpaidDueInFmt", until.ToString(CultureInfo.CurrentCulture));
-                if (until <= 7)
-                    isDueSoon = true;
-            }
-
-            unpaidRows.Add(new ReportUnpaidRow(
-                f.Numero,
-                CurrencyHelper.Format(reste, dev),
-                f.DateEcheance.ToString("d", CultureInfo.CurrentCulture),
-                dueStatus,
-                isOverdue,
-                isDueSoon));
         }
 
         return new ReportData
@@ -406,8 +337,6 @@ public partial class ReportingViewModel : BaseViewModel
             KpiEncours = _locale.Tf("Report_KpiEncours", CurrencyHelper.Format(encoursTotal, dev), encoursCount.ToString(CultureInfo.CurrentCulture)),
             TopClients = topClientRows,
             TopProduits = topProdRows,
-            StockAlertes = stockAlertRows,
-            FacturesImpayees = unpaidRows,
         };
     }
 
@@ -454,6 +383,4 @@ internal sealed class ReportData
     public string KpiEncours { get; init; } = string.Empty;
     public List<ReportRankRow> TopClients { get; init; } = [];
     public List<ReportRankRow> TopProduits { get; init; } = [];
-    public List<ReportStockAlertRow> StockAlertes { get; init; } = [];
-    public List<ReportUnpaidRow> FacturesImpayees { get; init; } = [];
 }

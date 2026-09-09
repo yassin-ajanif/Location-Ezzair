@@ -47,11 +47,9 @@ public partial class ProductAvailabilityViewModel : BaseViewModel
     [ObservableProperty] private string _lblLegendFree = string.Empty;
     [ObservableProperty] private string _lblLegendPartial = string.Empty;
     [ObservableProperty] private string _lblLegendFull = string.Empty;
-    [ObservableProperty] private string _lblFreeWindows = string.Empty;
     [ObservableProperty] private string _lblBookings = string.Empty;
     [ObservableProperty] private string _lblOverdueTitle = string.Empty;
     [ObservableProperty] private string _lblEmptyProduct = string.Empty;
-    [ObservableProperty] private string _lblNoFree = string.Empty;
     [ObservableProperty] private string _lblNoBookings = string.Empty;
     [ObservableProperty] private string _lblToday = string.Empty;
     [ObservableProperty] private string _monthTitle = string.Empty;
@@ -68,13 +66,11 @@ public partial class ProductAvailabilityViewModel : BaseViewModel
     public ObservableCollection<AvailabilityDayCell> Days { get; } = [];
     public ObservableCollection<AvailabilityWeekRow> Weeks { get; } = [];
     public ObservableCollection<string> WeekdayHeaders { get; } = [];
-    public ObservableCollection<AvailabilityFreeWindowRow> FreeWindows { get; } = [];
     public ObservableCollection<AvailabilityBookingRow> Bookings { get; } = [];
     public ObservableCollection<AvailabilityBookingRow> OverdueBookings { get; } = [];
 
     public AutoCompleteFilterPredicate<object?> CatalogFilter => DocumentCatalogAutoComplete.ItemFilter;
     public bool HasProduct => SelectedProduitId is > 0;
-    public bool HasFreeWindows => FreeWindows.Count > 0;
     public bool HasBookings => Bookings.Count > 0;
     public bool HasOverdueBookings => OverdueBookings.Count > 0;
 
@@ -88,11 +84,9 @@ public partial class ProductAvailabilityViewModel : BaseViewModel
         LblLegendFree = _locale.T("Avail_LegendFree");
         LblLegendPartial = _locale.T("Avail_LegendPartial");
         LblLegendFull = _locale.T("Avail_LegendFull");
-        LblFreeWindows = _locale.T("Avail_FreeWindows");
         LblBookings = _locale.T("Avail_Bookings");
         LblOverdueTitle = _locale.T("Avail_OverdueTitle");
         LblEmptyProduct = _locale.T("Avail_EmptyProduct");
-        LblNoFree = _locale.T("Avail_NoFree");
         LblNoBookings = _locale.T("Avail_NoBookings");
         LblToday = _locale.T("Avail_Today");
         WeekdayHeaders.Clear();
@@ -193,11 +187,9 @@ public partial class ProductAvailabilityViewModel : BaseViewModel
     {
         Days.Clear();
         Weeks.Clear();
-        FreeWindows.Clear();
         Bookings.Clear();
         OverdueBookings.Clear();
         StockTotalLabel = string.Empty;
-        OnPropertyChanged(nameof(HasFreeWindows));
         OnPropertyChanged(nameof(HasBookings));
         OnPropertyChanged(nameof(HasOverdueBookings));
 
@@ -211,7 +203,7 @@ public partial class ProductAvailabilityViewModel : BaseViewModel
         ProductSummary = $"{result.Designation}  ({result.Reference})";
         StockTotalLabel = _locale.Tf("Avail_StockTotalFmt", result.StockTotal);
 
-        // Prefer the first free-window start (matches "Prochaines disponibilités").
+        // First free-window start drives the "1ʳᵉ dispo" day border highlight.
         DateTime? nextAvailable = result.FreeWindows.Count > 0
             ? result.FreeWindows[0].DateDebut.Date
             : result.Days
@@ -234,10 +226,6 @@ public partial class ProductAvailabilityViewModel : BaseViewModel
             Weeks.Add(week);
         }
 
-        foreach (var w in result.FreeWindows)
-            FreeWindows.Add(new AvailabilityFreeWindowRow(
-                _locale.Tf("Avail_FreeWindowFmt", w.DateDebut, w.DateFin, w.AvailableMin)));
-
         foreach (var b in result.UpcomingBookings)
             Bookings.Add(new AvailabilityBookingRow(
                 b.Id,
@@ -256,7 +244,6 @@ public partial class ProductAvailabilityViewModel : BaseViewModel
                     : _locale.Tf("Avail_OverdueBookingFmt", b.DateFin, b.QuantiteEncore),
                 IsOverdue: true));
 
-        OnPropertyChanged(nameof(HasFreeWindows));
         OnPropertyChanged(nameof(HasBookings));
         OnPropertyChanged(nameof(HasOverdueBookings));
     }
@@ -411,8 +398,6 @@ public partial class AvailabilityDayCell : ObservableObject
             day.IsCurrentMonth ? 1 : 0.45);
     }
 }
-
-public sealed record AvailabilityFreeWindowRow(string Label);
 
 public sealed record AvailabilityBookingRow(
     int DocumentId,

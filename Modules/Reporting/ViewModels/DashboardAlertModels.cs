@@ -10,14 +10,7 @@ public enum DashboardAlertSeverity
 public enum DashboardAlertKind
 {
     ReturnOverdue,
-    ReturnDueSoon,
-    SoftReservationStartingSoon,
-    AvailabilityConflict,
-    LongOverdueMaterial,
-    StockBelowMin,
-    HighDemandSoon,
-    ReturnConditionAction,
-    UnpaidInvoice
+    SoftReservationExpired
 }
 
 public enum DashboardAlertNav

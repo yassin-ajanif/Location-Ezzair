@@ -173,26 +173,6 @@
       <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Spacing="14">
           <StackPanel Spacing="8">
-            <TextBlock Text="{Binding LblFreeWindows}" FontWeight="SemiBold"/>
-            <TextBlock Text="{Binding LblNoFree}" Opacity="0.65" IsVisible="{Binding !HasFreeWindows}"/>
-            <ItemsControl ItemsSource="{Binding FreeWindows}" IsVisible="{Binding HasFreeWindows}">
-              <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                  <StackPanel Spacing="8"/>
-                </ItemsPanelTemplate>
-              </ItemsControl.ItemsPanel>
-              <ItemsControl.ItemTemplate>
-                <DataTemplate DataType="vm:AvailabilityFreeWindowRow">
-                  <Border Padding="10,8" CornerRadius="8"
-                          Background="#DCFCE7" BorderBrush="#86EFAC" BorderThickness="1">
-                    <TextBlock Text="{Binding Label}" Foreground="#166534" TextWrapping="Wrap" FontSize="12"/>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </StackPanel>
-
-          <StackPanel Spacing="8">
             <TextBlock Text="{Binding LblOverdueTitle}" FontWeight="SemiBold"
                        IsVisible="{Binding HasOverdueBookings}"/>
             <ItemsControl ItemsSource="{Binding OverdueBookings}" IsVisible="{Binding HasOverdueBookings}">
