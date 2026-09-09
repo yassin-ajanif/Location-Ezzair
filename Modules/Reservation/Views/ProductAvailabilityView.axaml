@@ -132,9 +132,21 @@
                                 </Border>
                                 <StackPanel Spacing="3" IsVisible="{Binding IsExpanded}">
                                   <Border Padding="5,2" CornerRadius="4" HorizontalAlignment="Left"
-                                          Background="#FEE2E2" BorderBrush="#FECACA" BorderThickness="1">
+                                          Background="#E0E7FF" BorderBrush="#A5B4FC" BorderThickness="1">
+                                    <TextBlock Text="{Binding DispoStockLine}" FontSize="10" FontWeight="Bold"
+                                               Foreground="#3730A3"/>
+                                  </Border>
+                                  <Border Padding="5,2" CornerRadius="4" HorizontalAlignment="Left"
+                                          Background="#FEE2E2" BorderBrush="#FECACA" BorderThickness="1"
+                                          IsVisible="{Binding ShowSortie}">
                                     <TextBlock Text="{Binding SortieLine}" FontSize="10" FontWeight="Bold"
                                                Foreground="#991B1B"/>
+                                  </Border>
+                                  <Border Padding="5,2" CornerRadius="4" HorizontalAlignment="Left"
+                                          Background="#DC2626" BorderBrush="#B91C1C" BorderThickness="1"
+                                          IsVisible="{Binding ShowRetard}">
+                                    <TextBlock Text="{Binding RetardLine}" FontSize="10" FontWeight="Bold"
+                                               Foreground="White"/>
                                   </Border>
                                   <Border Padding="5,2" CornerRadius="4" HorizontalAlignment="Left"
                                           Background="#FFEDD5" BorderBrush="#FB923C" BorderThickness="1">

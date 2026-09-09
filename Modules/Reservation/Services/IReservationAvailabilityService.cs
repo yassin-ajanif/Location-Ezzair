@@ -38,7 +38,11 @@ public sealed record ProductAvailabilityDay(
     decimal BonSortieBooked,
     decimal Available,
     decimal StockTotal,
-    ProductAvailabilityDayLevel Level);
+    ProductAvailabilityDayLevel Level,
+    /// <summary>Qty still out past planned end — display only, does not change dispo/sortie.</summary>
+    decimal RetardQty = 0,
+    /// <summary>Physical warehouse stock (StockActuel) — display only.</summary>
+    decimal DispoStock = 0);
 
 public sealed record ProductAvailabilityBooking(
     string Numero,

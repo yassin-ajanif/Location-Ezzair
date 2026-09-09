@@ -260,8 +260,11 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
             }).ToListAsync(cancellationToken);
 
         var owned = produit.StockActuel + openLines.Sum(l => l.Encore);
+        var dispoStock = produit.StockActuel;
 
         var today = DateTime.Today;
+        // Display-only: qty still out after planned end. Does not change dispo / sortie / colors.
+        var retardQty = openLines.Where(l => l.DateFin < today).Sum(l => l.Encore);
 
         // Occupancy = planned date ranges only (début → retour effectif / fin prévue).
         var relevant = openLines
@@ -312,8 +315,11 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
             else
                 level = ProductAvailabilityDayLevel.Full;
 
+            // Show retard from today onward while qty is still out past its planned end.
+            var dayRetard = inMonth && date >= today ? retardQty : 0m;
+
             days.Add(new ProductAvailabilityDay(
-                date, inMonth, booked, softBooked, bsBooked, available, owned, level));
+                date, inMonth, booked, softBooked, bsBooked, available, owned, level, dayRetard, dispoStock));
         }
 
         var upcomingBookings = relevant
