@@ -106,12 +106,6 @@ public partial class ReportingViewModel : BaseViewModel
             return;
         }
 
-        if (_cachedData is not null)
-        {
-            ApplyData(_cachedData);
-            return;
-        }
-
         IsBusy = true;
         try
         {
