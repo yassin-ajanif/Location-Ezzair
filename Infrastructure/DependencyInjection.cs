@@ -65,6 +65,7 @@ public static class DependencyInjection
         services.AddSingleton<IFactureWorkflowService, FactureWorkflowService>();
         services.AddSingleton<IAvoirWorkflowService, AvoirWorkflowService>();
         services.AddSingleton<IReportService, ReportService>();
+        services.AddSingleton<IDashboardAlertsService, DashboardAlertsService>();
         services.AddSingleton<ILicenseService, LicenseService>();
         services.AddSingleton<IAppUpdateService, AppUpdateService>();
         services.AddSingleton<IPdfService, PdfService>();

@@ -2,11 +2,64 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:GestionCommerciale.Modules.Reporting.ViewModels"
              x:Class="GestionCommerciale.Modules.Reporting.Views.ReportingView"
+             x:Name="ReportRoot"
              x:DataType="vm:ReportingViewModel"
              x:CompileBindings="False">
   <Grid>
     <ScrollViewer>
       <StackPanel Spacing="28" Margin="4,8,4,32" MinWidth="520">
+        <!-- Operational alerts -->
+        <Border Classes="report-shadow-soft" Padding="18"
+                Background="{DynamicResource CourseraSurfaceBrush}"
+                BorderBrush="{DynamicResource CourseraBorderBrush}" BorderThickness="1" CornerRadius="14">
+          <StackPanel Spacing="14">
+            <StackPanel Spacing="4">
+              <TextBlock Text="{Binding LblDashAlerts}" FontWeight="SemiBold" FontSize="17"/>
+              <TextBlock Text="{Binding DashAlertHint}" Classes="subtle" FontSize="12" TextWrapping="Wrap"/>
+            </StackPanel>
+            <ItemsControl ItemsSource="{Binding DashAlerts}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:DashboardAlertRow">
+                  <Button Classes="dash-alert-item"
+                          HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                          Margin="0,0,0,10" Padding="0"
+                          Command="{Binding #ReportRoot.DataContext.OpenDashAlertCommand}"
+                          CommandParameter="{Binding}">
+                    <Border Background="{DynamicResource CourseraSurfaceMutedBrush}"
+                            BorderBrush="{DynamicResource CourseraBorderBrush}" BorderThickness="1" CornerRadius="10"
+                            ClipToBounds="True">
+                      <Grid ColumnDefinitions="4,*">
+                        <Grid Grid.Column="0" Width="4">
+                          <Border IsVisible="{Binding IsCritical}" Background="{DynamicResource CourseraDangerBrush}"
+                                  HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                          <Border IsVisible="{Binding IsWarning}" Background="{DynamicResource CourseraWarningBrush}"
+                                  HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                          <Border IsVisible="{Binding IsInfo}" Background="{DynamicResource CourseraPrimaryBrush}"
+                                  HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                        </Grid>
+                        <StackPanel Grid.Column="1" Margin="14,12,14,12" Spacing="4">
+                          <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13.5" TextWrapping="Wrap"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Category}" Classes="subtle" FontSize="11"
+                                       Margin="10,0,0,0" VerticalAlignment="Top"/>
+                          </Grid>
+                          <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" FontSize="13" Classes="subtle"/>
+                        </StackPanel>
+                      </Grid>
+                    </Border>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Border Padding="20,18" CornerRadius="10"
+                    Background="{DynamicResource CourseraSurfaceMutedBrush}"
+                    IsVisible="{Binding ShowEmptyDashAlerts}">
+              <TextBlock Text="{Binding EmptyMessageDashAlerts}" Classes="subtle" TextWrapping="Wrap"
+                         TextAlignment="Center" FontSize="13.5" LineHeight="22"/>
+            </Border>
+          </StackPanel>
+        </Border>
+
         <!-- CA block -->
         <StackPanel Spacing="10">
           <StackPanel Spacing="6">

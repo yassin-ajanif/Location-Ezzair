@@ -4,12 +4,17 @@ using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GestionCommerciale.Modules.Auth.Services;
+using GestionCommerciale.Modules.Facturation.ViewModels;
+using GestionCommerciale.Modules.Reporting.Services;
+using GestionCommerciale.Modules.Reservation.ViewModels;
 using GestionCommerciale.Modules.Stock;
+using GestionCommerciale.Modules.Stock.ViewModels;
 using GestionCommerciale.Shared.Database;
 using GestionCommerciale.Shared.Helpers;
 using GestionCommerciale.Shared.Services;
 using GestionCommerciale.Shared.ViewModels;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace GestionCommerciale.Modules.Reporting.ViewModels;
 
@@ -20,6 +25,9 @@ public partial class ReportingViewModel : BaseViewModel
     private readonly IAppSettingsService _settings;
     private readonly ICurrentUserSession _session;
     private readonly ILocaleService _locale;
+    private readonly IDashboardAlertsService _dashAlerts;
+    private readonly WorkspaceNavigator _workspace;
+    private readonly IServiceProvider _sp;
 
     private ReportData? _cachedData;
 
@@ -28,13 +36,19 @@ public partial class ReportingViewModel : BaseViewModel
         IDialogService dialog,
         IAppSettingsService settings,
         ICurrentUserSession session,
-        ILocaleService locale)
+        ILocaleService locale,
+        IDashboardAlertsService dashAlerts,
+        WorkspaceNavigator workspaceNavigator,
+        IServiceProvider sp)
     {
         _dbFactory = dbFactory;
         _dialog = dialog;
         _settings = settings;
         _session = session;
         _locale = locale;
+        _dashAlerts = dashAlerts;
+        _workspace = workspaceNavigator;
+        _sp = sp;
         _locale.CultureApplied += (_, _) => RefreshReportingUi();
         RefreshReportingUi();
         Title = _locale.T("Report_Title");
@@ -47,6 +61,8 @@ public partial class ReportingViewModel : BaseViewModel
     [ObservableProperty] private string _lblTopProducts = string.Empty;
     [ObservableProperty] private string _lblStockAlerts = string.Empty;
     [ObservableProperty] private string _lblUnpaid = string.Empty;
+    [ObservableProperty] private string _lblDashAlerts = string.Empty;
+    [ObservableProperty] private string _dashAlertHint = string.Empty;
     [ObservableProperty] private string _lineCaCurrent = string.Empty;
     [ObservableProperty] private string _lineCaPrev = string.Empty;
     [ObservableProperty] private string _lineCaDelta = string.Empty;
@@ -67,16 +83,19 @@ public partial class ReportingViewModel : BaseViewModel
     [ObservableProperty] private bool _showEmptyTopProducts;
     [ObservableProperty] private bool _showEmptyStock;
     [ObservableProperty] private bool _showEmptyUnpaid;
+    [ObservableProperty] private bool _showEmptyDashAlerts;
 
     [ObservableProperty] private string _emptyMessageTopClients = string.Empty;
     [ObservableProperty] private string _emptyMessageTopProducts = string.Empty;
     [ObservableProperty] private string _emptyMessageStock = string.Empty;
     [ObservableProperty] private string _emptyMessageUnpaid = string.Empty;
+    [ObservableProperty] private string _emptyMessageDashAlerts = string.Empty;
 
     public ObservableCollection<ReportRankRow> TopClients { get; } = [];
     public ObservableCollection<ReportRankRow> TopProduits { get; } = [];
     public ObservableCollection<ReportStockAlertRow> StockAlertes { get; } = [];
     public ObservableCollection<ReportUnpaidRow> FacturesImpayees { get; } = [];
+    public ObservableCollection<DashboardAlertRow> DashAlerts { get; } = [];
 
     private void RefreshReportingUi()
     {
@@ -89,12 +108,15 @@ public partial class ReportingViewModel : BaseViewModel
         LblTopProducts = _locale.T("Report_LblTopProducts");
         LblStockAlerts = _locale.T("Report_LblStockAlerts");
         LblUnpaid = _locale.T("Report_LblUnpaid");
+        LblDashAlerts = _locale.T("Report_LblDashAlerts");
+        DashAlertHint = _locale.T("Report_DashAlertHint");
         LineCaCurrent = _locale.Tf("Report_FmtCurrentMonth", CaMoisCourant);
         LineCaPrev = _locale.Tf("Report_FmtPrevMonth", CaMoisPrecedent);
         EmptyMessageTopClients = _locale.T("Report_EmptyTopClients");
         EmptyMessageTopProducts = _locale.T("Report_EmptyTopProducts");
         EmptyMessageStock = _locale.T("Report_EmptyStock");
         EmptyMessageUnpaid = _locale.T("Report_EmptyUnpaid");
+        EmptyMessageDashAlerts = _locale.T("Report_EmptyDashAlerts");
     }
 
     [RelayCommand]
@@ -112,9 +134,11 @@ public partial class ReportingViewModel : BaseViewModel
             await Task.Yield();
 
             var data = await Task.Run(() => LoadDataAsync(cancellationToken), cancellationToken);
+            var dash = await Task.Run(() => _dashAlerts.GetAlertsAsync(cancellationToken), cancellationToken);
 
             _cachedData = data;
             ApplyData(data);
+            ApplyDashAlerts(dash);
         }
         catch (OperationCanceledException) { }
         catch (Exception ex)
@@ -125,6 +149,57 @@ public partial class ReportingViewModel : BaseViewModel
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    private void ApplyDashAlerts(IReadOnlyList<DashboardAlertRow> rows)
+    {
+        DashAlerts.Clear();
+        foreach (var r in rows)
+            DashAlerts.Add(r);
+        ShowEmptyDashAlerts = DashAlerts.Count == 0;
+    }
+
+    [RelayCommand]
+    private void OpenDashAlert(DashboardAlertRow? row)
+    {
+        if (row is null) return;
+
+        switch (row.Nav)
+        {
+            case DashboardAlertNav.BonSortie when row.EntityId is { } bsId:
+            {
+                var vm = _sp.GetRequiredService<ReservationEditViewModel>();
+                vm.Load(bsId);
+                _workspace.Open(vm);
+                break;
+            }
+            case DashboardAlertNav.SoftReservation when row.EntityId is { } softId:
+            {
+                var vm = _sp.GetRequiredService<SoftReservationEditViewModel>();
+                vm.Load(softId);
+                _workspace.Open(vm);
+                break;
+            }
+            case DashboardAlertNav.Facture when row.EntityId is { } factureId:
+            {
+                var vm = _sp.GetRequiredService<FactureEditViewModel>();
+                vm.Load(factureId);
+                _workspace.Open(vm);
+                break;
+            }
+            case DashboardAlertNav.Availability when row.EntityId is { } produitId:
+            {
+                var vm = _sp.GetRequiredService<ProductAvailabilityViewModel>();
+                vm.ShowProduct(produitId, row.ProductLabel);
+                _workspace.Open(vm);
+                break;
+            }
+            case DashboardAlertNav.Produits:
+            {
+                _workspace.Open(_sp.GetRequiredService<ProduitsViewModel>());
+                break;
+            }
         }
     }
 

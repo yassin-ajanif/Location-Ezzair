@@ -118,6 +118,20 @@ public partial class ProductAvailabilityViewModel : BaseViewModel
         _ = LoadMonthAsync(CancellationToken.None);
     }
 
+    /// <summary>Open calendar focused on a product (e.g. from Accueil alerts).</summary>
+    public void ShowProduct(int produitId, string? label = null)
+    {
+        if (produitId <= 0) return;
+        SelectedProduitId = produitId;
+        var text = string.IsNullOrWhiteSpace(label) ? $"#{produitId}" : label.Trim();
+        ProductSummary = text;
+        OnPropertyChanged(nameof(HasProduct));
+        _suppressPick = true;
+        SearchText = text;
+        _suppressPick = false;
+        _ = LoadMonthAsync(CancellationToken.None);
+    }
+
     partial void OnQtyNeededChanged(decimal value) => _ = LoadMonthAsync(CancellationToken.None);
 
     [RelayCommand]

@@ -103,6 +103,21 @@
     <Setter Property="FontWeight" Value="SemiBold"/>
   </Style>
 
+  <Style Selector="Button.dash-alert-item">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="FontWeight" Value="Normal"/>
+    <Setter Property="CornerRadius" Value="10"/>
+    <Setter Property="Cursor" Value="Hand"/>
+  </Style>
+
+  <Style Selector="Button.dash-alert-item:pointerover">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Opacity" Value="0.92"/>
+  </Style>
+
   <Style Selector="Button:pointerover">
     <Setter Property="Background" Value="{DynamicResource CourseraSurfaceMutedBrush}"/>
   </Style>
