@@ -1,11 +1,8 @@
 using GestionCommerciale.Modules.AvoirFournisseur.Models;
 using GestionCommerciale.Modules.CommandeFournisseur.Models;
-using GestionCommerciale.Modules.Devis.Models;
 using GestionCommerciale.Modules.Facturation.Models;
 using GestionCommerciale.Modules.Facturation.Services;
 using GestionCommerciale.Modules.FactureFournisseur.Models;
-using GestionCommerciale.Modules.Livraison;
-using GestionCommerciale.Modules.Livraison.Models;
 using GestionCommerciale.Modules.Reception.Models;
 using GestionCommerciale.Modules.Tiers.Models;
 using GestionCommerciale.Shared.Database;
@@ -44,94 +41,6 @@ public sealed class PdfService : IPdfService
     private static string FmtTvaPct(decimal value) => value.ToString("#,##0.##", PdfCulture);
 
     private static string FmtMoney(decimal value) => value.ToString("N2", PdfCulture);
-
-    public async Task<byte[]> BuildDevisPdfAsync(Devis devis, DocumentPartyPdfInfo party, CancellationToken cancellationToken = default)
-    {
-        var cfg = await _settings.GetAsync(cancellationToken);
-        var meta = await LoadProductMetaAsync(devis.Lignes.Select(l => l.ProduitId), cancellationToken);
-        var totals = DocumentTotalsHelper.DevisTotals(devis.Lignes, devis.RemiseGlobale);
-        var vis = _uiPreferences.GetDocumentLineColumnVisibility("devis");
-        var lineData = new List<StandardPdfLine>();
-        foreach (var l in devis.Lignes)
-        {
-            var ht = DocumentTotalsHelper.LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise);
-            var ttc = ht * (1 + l.TauxTVA / 100m);
-            lineData.Add(new StandardPdfLine(
-                RefCell(meta, l.ProduitId),
-                l.Designation,
-                FmtQty(l.Quantite),
-                l.Conditionnement,
-                FmtUnitPrice(l.PrixUnitaireHT),
-                FmtTvaPct(l.TauxTVA),
-                FmtMoney(l.Remise),
-                FmtMoney(ht),
-                FmtMoney(ttc)));
-        }
-
-        var (cols, rows) = BuildStandardPdfTable(vis, supportsLineRemise: true, "Qté", lineData);
-
-        var docLines = new List<PdfKeyValueLine>
-        {
-            new("N°", devis.Numero),
-            new("Date", devis.Date.ToString("dd/MM/yyyy")),
-            new("Valable jusqu'au", devis.DateValidite.ToString("dd/MM/yyyy"))
-        };
-        if (devis.RemiseGlobale > 0)
-            docLines.Add(new("Remise globale", $"{devis.RemiseGlobale:N2} %"));
-
-        var conditionLines = devis.Conditions
-            .OrderBy(c => c.Ordre)
-            .Where(c => !string.IsNullOrWhiteSpace(c.Titre) || !string.IsNullOrWhiteSpace(c.Valeur))
-            .Select(c => new PdfKeyValueLine(c.Titre, c.Valeur))
-            .ToList();
-
-        var model = BaseModel(cfg, "DEVIS", docLines, PartyLines(party, "Client"), cols, rows, totals, devis.Note, vis.ShowMontantTtc, conditionLines);
-        return CommercialDocumentPdfRenderer.Render(model, TryLoadLogoBytes(cfg.SocieteLogoPath));
-    }
-
-    public async Task<byte[]> BuildBonLivraisonPdfAsync(BonLivraison bl, DocumentPartyPdfInfo party, CancellationToken cancellationToken = default)
-    {
-        var cfg = await _settings.GetAsync(cancellationToken);
-        var meta = await LoadProductMetaAsync(bl.Lignes.Select(l => l.ProduitId), cancellationToken);
-        var svcMeta = await LoadServiceMetaAsync(bl.Lignes.Select(l => l.ServiceId), cancellationToken);
-        var blVis = _uiPreferences.GetDocumentLineColumnVisibility("bon_livraison");
-        var totals = DocumentTotalsHelper.BonLivraisonTotals(bl.Lignes);
-        var lineData = new List<StandardPdfLine>();
-        foreach (var l in bl.Lignes)
-        {
-            var lht = DocumentTotalsHelper.LigneHT(l.QuantiteLivree, l.PrixUnitaireHT, l.Remise);
-            var ttc = lht * (1 + l.TauxTVA / 100m);
-            lineData.Add(new StandardPdfLine(
-                DocumentLineRef(meta, svcMeta, l.ProduitId, l.ServiceId),
-                l.Designation,
-                FmtQty(l.QuantiteLivree),
-                DocumentLineUnite(meta, svcMeta, l.ProduitId, l.ServiceId, null),
-                FmtUnitPrice(l.PrixUnitaireHT),
-                FmtTvaPct(l.TauxTVA),
-                FmtMoney(l.Remise),
-                FmtMoney(lht),
-                FmtMoney(ttc)));
-        }
-
-        var (cols, rows) = BuildStandardPdfTable(blVis, supportsLineRemise: true, "Qté", lineData);
-
-        var docLines = new List<PdfKeyValueLine>
-        {
-            new("N°", bl.Numero),
-            new("Date", bl.Date.ToString("dd/MM/yyyy"))
-        };
-
-        var bccRef = await ResolveBonCommandeReferenceForBlPdfAsync(bl, cancellationToken);
-        if (!string.IsNullOrWhiteSpace(bccRef))
-            docLines.Add(new("BC", bccRef));
-
-        var resNumero = await ResolveReservationNumeroForBlPdfAsync(bl, cancellationToken);
-        if (!string.IsNullOrWhiteSpace(resNumero))
-            docLines.Add(new("Réservation", resNumero));
-
-        var model = BaseModel(cfg, "BON DE LIVRAISON", docLines, PartyLines(party, "Client"), cols, rows, totals, bl.Note, blVis.ShowMontantTtc);
-        return CommercialDocumentPdfRenderer.Render(model, TryLoadLogoBytes(cfg.SocieteLogoPath));
-    }
 
     public async Task<byte[]> BuildBonReceptionPdfAsync(BonReception br, DocumentPartyPdfInfo party, CancellationToken cancellationToken = default)
     {
@@ -240,9 +149,9 @@ public sealed class PdfService : IPdfService
             new("Échéance", facture.DateEcheance.ToString("dd/MM/yyyy"))
         };
 
-        var blNums = await GetLinkedBlNumerosAsync(facture.Id, cancellationToken);
-        if (blNums.Count > 0)
-            docLines.Add(new("BL", string.Join(", ", blNums)));
+        var bsNums = await GetLinkedBonSortieNumerosAsync(facture.Id, cancellationToken);
+        if (bsNums.Count > 0)
+            docLines.Add(new("Bon de sortie", string.Join(", ", bsNums)));
 
         var bccRef = await ResolveBonCommandeReferenceForPdfAsync(facture, cancellationToken);
         if (!string.IsNullOrWhiteSpace(bccRef))
@@ -321,10 +230,10 @@ public sealed class PdfService : IPdfService
         return string.Join(", ", list.Select(p => $"{p.Montant:N2} ({p.Date:dd/MM/yyyy})"));
     }
 
-    private async Task<List<string>> GetLinkedBlNumerosAsync(int factureId, CancellationToken cancellationToken)
+    private async Task<List<string>> GetLinkedBonSortieNumerosAsync(int factureId, CancellationToken cancellationToken)
     {
         await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-        return await db.BonsLivraison.AsNoTracking()
+        return await db.BonsSortie.AsNoTracking()
             .Where(b => b.FactureId == factureId)
             .OrderBy(b => b.Date).ThenBy(b => b.Numero)
             .Select(b => b.Numero)
@@ -344,39 +253,6 @@ public sealed class PdfService : IPdfService
             .ToListAsync(cancellationToken);
 
         return linkedNums.Count == 0 ? null : string.Join(", ", linkedNums);
-    }
-
-    private async Task<string?> ResolveBonCommandeReferenceForBlPdfAsync(BonLivraison bl, CancellationToken cancellationToken)
-    {
-        var fromNote = BonCommandeReferenceStorage.ResolveForPdf(bl.Note);
-        if (!string.IsNullOrWhiteSpace(fromNote))
-            return fromNote;
-
-        if (bl.BonCommandeClientId is not int bccId)
-            return null;
-
-        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-        return await db.BonsCommandeClient.AsNoTracking()
-            .Where(b => b.Id == bccId)
-            .Select(b => b.Numero)
-            .FirstOrDefaultAsync(cancellationToken);
-    }
-
-    private async Task<string?> ResolveReservationNumeroForBlPdfAsync(BonLivraison bl, CancellationToken cancellationToken)
-    {
-        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-        if (bl.BonSortieId is int resId)
-        {
-            return await db.BonsSortie.AsNoTracking()
-                .Where(r => r.Id == resId)
-                .Select(r => r.Numero)
-                .FirstOrDefaultAsync(cancellationToken);
-        }
-
-        return await db.BonsSortie.AsNoTracking()
-            .Where(r => r.BonLivraisonId == bl.Id)
-            .Select(r => r.Numero)
-            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<byte[]> BuildAvoirPdfAsync(Avoir avoir, DocumentPartyPdfInfo party, CancellationToken cancellationToken = default)

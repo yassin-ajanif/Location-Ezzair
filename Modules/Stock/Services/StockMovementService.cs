@@ -7,7 +7,6 @@ namespace GestionCommerciale.Modules.Stock.Services;
 
 public sealed class StockMovementService : IStockMovementService
 {
-    public const string OrigineTypeBonLivraison = "BL";
     public const string OrigineTypeBonReception = "BR";
     public const string OrigineTypeAvoir = "Avoir";
     public const string OrigineTypeAvoirFournisseur = "AvoirFournisseur";
@@ -55,35 +54,6 @@ public sealed class StockMovementService : IStockMovementService
             Note = note ?? string.Empty,
             CreatedByUserId = createdByUserId
         });
-    }
-
-    /// <summary>
-    /// Syncs stock for a BL origin. The Livraison UI always passes empty lines
-    /// (Location owns rental stock). POS may still pass quantities for till sales.
-    /// </summary>
-    public Task ResyncBonLivraisonStockAsync(
-        AppDbContext db,
-        int bonLivraisonId,
-        string noteDetail,
-        IEnumerable<(int ProduitId, decimal QuantiteLivree)> lines,
-        int? createdByUserId,
-        CancellationToken cancellationToken = default)
-    {
-        var desired = lines
-            .Where(l => l.ProduitId > 0 && l.QuantiteLivree > 0)
-            .GroupBy(l => l.ProduitId)
-            .ToDictionary(g => g.Key, g => -g.Sum(l => l.QuantiteLivree));
-
-        return SyncDocumentStockAsync(
-            db,
-            OrigineTypeBonLivraison,
-            bonLivraisonId,
-            noteDetail,
-            desired,
-            createdByUserId,
-            useModificationNoteOnEdit: true,
-            onPositiveEntreeDelta: null,
-            cancellationToken);
     }
 
     public Task SyncBonReceptionStockAsync(

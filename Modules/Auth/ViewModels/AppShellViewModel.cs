@@ -4,13 +4,10 @@ using GestionCommerciale.Modules.Charges.ViewModels;
 using GestionCommerciale.Modules.Services.ViewModels;
 using GestionCommerciale.Modules.AvoirFournisseur.ViewModels;
 using GestionCommerciale.Modules.Auth.Services;
-using GestionCommerciale.Modules.Devis.ViewModels;
 using GestionCommerciale.Modules.Facturation.ViewModels;
 using GestionCommerciale.Modules.FactureFournisseur.ViewModels;
-using GestionCommerciale.Modules.Livraison.ViewModels;
 using GestionCommerciale.Modules.Reservation.ViewModels;
 using GestionCommerciale.Modules.CommandeFournisseur.ViewModels;
-using GestionCommerciale.Modules.Pos.ViewModels;
 using GestionCommerciale.Modules.Reception.ViewModels;
 using GestionCommerciale.Modules.Reporting.ViewModels;
 using GestionCommerciale.Modules.Stock.ViewModels;
@@ -62,12 +59,9 @@ public partial class AppShellViewModel : BaseViewModel
 
     [ObservableProperty] private string _navHome = string.Empty;
     [ObservableProperty] private string _navAvailability = string.Empty;
-    [ObservableProperty] private string _navPos = string.Empty;
     [ObservableProperty] private string _navVente = string.Empty;
     [ObservableProperty] private string _navAchat = string.Empty;
     [ObservableProperty] private string _navClients = string.Empty;
-    [ObservableProperty] private string _navDevis = string.Empty;
-    [ObservableProperty] private string _navBl = string.Empty;
     [ObservableProperty] private string _navLocation = string.Empty;
     [ObservableProperty] private string _navReservation = string.Empty;
     [ObservableProperty] private string _navEtatClient = string.Empty;
@@ -91,11 +85,8 @@ public partial class AppShellViewModel : BaseViewModel
 
     [ObservableProperty] private bool _isNavHomeActive;
     [ObservableProperty] private bool _isNavAvailabilityActive;
-    [ObservableProperty] private bool _isNavPosActive;
     [ObservableProperty] private bool _isNavClientsActive;
     [ObservableProperty] private bool _isNavFournisseursActive;
-    [ObservableProperty] private bool _isNavDevisActive;
-    [ObservableProperty] private bool _isNavBlActive;
     [ObservableProperty] private bool _isNavLocationActive;
     [ObservableProperty] private bool _isNavReservationActive;
     [ObservableProperty] private bool _isNavEtatClientActive;
@@ -116,12 +107,9 @@ public partial class AppShellViewModel : BaseViewModel
     {
         NavHome = _locale.T("Nav_Home");
         NavAvailability = _locale.T("Nav_Availability");
-        NavPos = _locale.T("Nav_Pos");
         NavVente = _locale.T("Nav_Vente");
         NavAchat = _locale.T("Nav_Achat");
         NavClients = _locale.T("Nav_Clients");
-        NavDevis = _locale.T("Nav_Devis");
-        NavBl = _locale.T("Nav_BL");
         NavLocation = _locale.T("Nav_Location");
         NavReservation = _locale.T("Nav_Reservation");
         NavEtatClient = _locale.T("Nav_EtatClient");
@@ -194,8 +182,6 @@ public partial class AppShellViewModel : BaseViewModel
     public bool ShowNavFournisseurs => _session.CanAccessFournisseurs;
     public bool ShowNavStock => _session.CanAccessStock;
     public bool ShowNavProduits => _session.CanAccessStock;
-    public bool ShowNavDevis => _session.CanAccessDevis;
-    public bool ShowNavBL => _session.CanAccessBL;
     public bool ShowNavLocation => _session.CanAccessLocation;
     public bool ShowNavReservation => _session.CanAccessLocation;
     public bool ShowNavEtatClient => _session.CanAccessLocation;
@@ -228,9 +214,6 @@ public partial class AppShellViewModel : BaseViewModel
     }
 
     [RelayCommand]
-    private void GoPos() => _workspace.Open(_sp.GetRequiredService<PosViewModel>());
-
-    [RelayCommand]
     private void GoClients()
     {
         var vm = _sp.GetRequiredService<TiersListViewModel>();
@@ -259,12 +242,6 @@ public partial class AppShellViewModel : BaseViewModel
         _workspace.Open(vm);
         vm.GoProfitChargesCommand.Execute(null);
     }
-
-    [RelayCommand]
-    private void GoDevis() => _workspace.Open(_sp.GetRequiredService<DevisListViewModel>());
-
-    [RelayCommand]
-    private void GoBL() => _workspace.Open(_sp.GetRequiredService<BLListViewModel>());
 
     [RelayCommand]
     private void GoLocation()
@@ -355,13 +332,10 @@ public partial class AppShellViewModel : BaseViewModel
         var p = _workspace.CurrentPage;
         IsNavHomeActive = p is HomeViewModel;
         IsNavAvailabilityActive = p is ProductAvailabilityViewModel;
-        IsNavPosActive = p is PosViewModel;
         IsNavClientsActive = p is TiersListViewModel tl && tl.Scope == TiersListScope.Clients
             || p is TiersDetailViewModel td && td.ListScope == TiersListScope.Clients;
         IsNavFournisseursActive = p is TiersListViewModel tiersList && tiersList.Scope == TiersListScope.Fournisseurs
             || p is TiersDetailViewModel tiersDetail && tiersDetail.ListScope == TiersListScope.Fournisseurs;
-        IsNavDevisActive = p is DevisListViewModel or DevisEditViewModel;
-        IsNavBlActive = p is BLListViewModel or BLEditViewModel;
         IsNavLocationActive = p is ReservationListViewModel or ReservationEditViewModel;
         IsNavReservationActive = p is SoftReservationListViewModel or SoftReservationEditViewModel;
         IsNavEtatClientActive = p is EtatClientViewModel;

@@ -16,14 +16,6 @@ public interface IStockMovementService
         int? createdByUserId,
         CancellationToken cancellationToken = default);
 
-    Task ResyncBonLivraisonStockAsync(
-        AppDbContext db,
-        int bonLivraisonId,
-        string noteDetail,
-        IEnumerable<(int ProduitId, decimal QuantiteLivree)> lines,
-        int? createdByUserId,
-        CancellationToken cancellationToken = default);
-
     Task SyncBonReceptionStockAsync(
         AppDbContext db,
         int bonReceptionId,

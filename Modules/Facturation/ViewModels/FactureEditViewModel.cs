@@ -7,7 +7,7 @@ using CommunityToolkit.Mvvm.Input;
 using GestionCommerciale.Modules.Auth.Services;
 using GestionCommerciale.Modules.Facturation.Models;
 using GestionCommerciale.Modules.Facturation.Services;
-using GestionCommerciale.Modules.Livraison.ViewModels;
+using GestionCommerciale.Modules.Reservation.ViewModels;
 using GestionCommerciale.Modules.Tiers.Models;
 using GestionCommerciale.Shared.Database;
 using GestionCommerciale.Shared.Helpers;
@@ -19,7 +19,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace GestionCommerciale.Modules.Facturation.ViewModels;
 
-public sealed record LinkedBlRow(int Id, string Numero, DateTime Date);
+public sealed record LinkedBonSortieRow(int Id, string Numero, DateTime Date);
 
 public partial class FactureEditViewModel : BaseViewModel
 {
@@ -35,7 +35,6 @@ public partial class FactureEditViewModel : BaseViewModel
     private readonly IUiPreferencesService _uiPreferences;
     private readonly IPdfService _pdf;
     private readonly IPdfPrintService _pdfPrint;
-    private readonly IFactureBlLinkService _blLinkService;
     private readonly AddLineCatalogSearchCoordinator _addLineSearch;
 
     public FactureEditViewModel(
@@ -43,7 +42,6 @@ public partial class FactureEditViewModel : BaseViewModel
         IDocumentNumberService numbers,
         IAppSettingsService settings,
         IFactureWorkflowService factureWorkflow,
-        IFactureBlLinkService blLinkService,
         IDialogService dialog,
         WorkspaceNavigator workspaceNavigator,
         IServiceProvider sp,
@@ -66,7 +64,6 @@ public partial class FactureEditViewModel : BaseViewModel
         _uiPreferences = uiPreferences;
         _pdf = pdf;
         _pdfPrint = pdfPrint;
-        _blLinkService = blLinkService;
         _addLineSearch = new AddLineCatalogSearchCoordinator(catalogSearch);
         _locale.CultureApplied += (_, _) =>
         {
@@ -82,10 +79,9 @@ public partial class FactureEditViewModel : BaseViewModel
     public ObservableCollection<GestionCommerciale.Modules.Tiers.Models.Tiers> Clients { get; } = [];
     public ObservableCollection<FactureLineRow> Lignes { get; } = [];
     public ObservableCollection<FacturePaiementRowViewModel> Paiements { get; } = [];
-    public ObservableCollection<LinkedBlRow> LinkedBls { get; } = [];
+    public ObservableCollection<LinkedBonSortieRow> LinkedBonSorties { get; } = [];
 
     [ObservableProperty] private int? _factureId;
-    [ObservableProperty] private int? _devisId;
     [ObservableProperty] private int _clientId;
     [ObservableProperty] private GestionCommerciale.Modules.Tiers.Models.Tiers? _selectedClient;
     [ObservableProperty] private string _numero = string.Empty;
@@ -152,8 +148,7 @@ public partial class FactureEditViewModel : BaseViewModel
     [ObservableProperty] private string _lblDocColTva = string.Empty;
     [ObservableProperty] private string _lblDocColMontantHt = string.Empty;
     [ObservableProperty] private string _lblDocColMontantTtc = string.Empty;
-    [ObservableProperty] private string _lblLinkedBls = string.Empty;
-    [ObservableProperty] private string _btnAddBl = string.Empty;
+    [ObservableProperty] private string _lblLinkedBonSorties = string.Empty;
 
     public DocumentLineGridColumnState LineGridColumns { get; } = new();
     public bool ShowTotalTva => LineGridColumns.ShowTva && LineGridColumns.ShowMontantTtc;
@@ -190,7 +185,7 @@ public partial class FactureEditViewModel : BaseViewModel
         LblDateFacture = _locale.T("Lbl_DateFacture");
         LblDateEcheance = _locale.T("Lbl_DateEcheance");
         BtnRemoveLine = _locale.T("Btn_RemoveLine");
-        LblAddProduct = _locale.T("Devis_LblAddProduct");
+        LblAddProduct = _locale.T("Fact_LblAddProduct");
         WmAddProduct = _locale.T("Wm_SearchCatalog");
         LblTotals = _locale.T("Lbl_Totals");
         LblPaymentsRecorded = _locale.T("Lbl_PaymentsRecorded");
@@ -218,8 +213,7 @@ public partial class FactureEditViewModel : BaseViewModel
         LblDocColTva = _locale.T("DocLine_ColTva");
         LblDocColMontantHt = _locale.T("DocLine_ColMontantHt");
         LblDocColMontantTtc = _locale.T("DocLine_ColMontantTtc");
-        LblLinkedBls = _locale.T("Fact_LinkedBls");
-        BtnAddBl = _locale.T("Fact_AddBl");
+        LblLinkedBonSorties = _locale.T("Fact_LinkedBonSorties");
     }
 
     private void UpdateFactureTotalLines()
@@ -507,8 +501,7 @@ public partial class FactureEditViewModel : BaseViewModel
         FactureId = id;
         var cfg = await _settings.GetAsync(cancellationToken);
         Devise = CurrencyHelper.FromSettings(cfg);
-        DevisId = null;
-        LinkedBls.Clear();
+        LinkedBonSorties.Clear();
         BonCommandeReference = string.Empty;
         Lignes.Clear();
         ResetAddProductSearch();
@@ -532,12 +525,12 @@ public partial class FactureEditViewModel : BaseViewModel
         }
 
         var f = await db.Factures.Include(x => x.Lignes).Include(x => x.Paiements).FirstAsync(x => x.Id == id, cancellationToken);
-        var linkedBls = await db.BonsLivraison.AsNoTracking()
+        var linkedBs = await db.BonsSortie.AsNoTracking()
             .Where(b => b.FactureId == id)
             .OrderBy(b => b.Date).ThenBy(b => b.Numero)
             .ToListAsync(cancellationToken);
-        foreach (var bl in linkedBls)
-            LinkedBls.Add(new LinkedBlRow(bl.Id, bl.Numero, bl.Date));
+        foreach (var bs in linkedBs)
+            LinkedBonSorties.Add(new LinkedBonSortieRow(bs.Id, bs.Numero, bs.Date));
         BonCommandeReference = f.BonCommandeReference;
         if (string.IsNullOrWhiteSpace(BonCommandeReference))
         {
@@ -549,7 +542,6 @@ public partial class FactureEditViewModel : BaseViewModel
             if (linkedBccNums.Count > 0)
                 BonCommandeReference = string.Join(", ", linkedBccNums);
         }
-        DevisId = f.DevisId;
         Numero = f.Numero;
         ClientId = f.ClientId;
         Date = new DateTimeOffset(f.Date);
@@ -565,7 +557,7 @@ public partial class FactureEditViewModel : BaseViewModel
         {
             var row = new FactureLineRow
             {
-                BonLivraisonId = l.BonLivraisonId,
+                BonSortieId = l.BonSortieId,
                 ProduitId = l.ProduitId,
                 ServiceId = l.ServiceId,
                 Reference = catalogRefs.GetReference(l.ProduitId, l.ServiceId),
@@ -602,82 +594,40 @@ public partial class FactureEditViewModel : BaseViewModel
 
     public void Load(int? id) => _ = LoadAsync(id, CancellationToken.None);
 
-    public void LoadFromBL(int blId) => _ = LoadFromBlsAsync([blId], CancellationToken.None);
-
     [RelayCommand]
-    private void RemoveBlGroup(LinkedBlRow bl)
+    private void RemoveBonSortieGroup(LinkedBonSortieRow bs)
     {
         for (var i = Lignes.Count - 1; i >= 0; i--)
         {
-            if (Lignes[i].BonLivraisonId == bl.Id)
+            if (Lignes[i].BonSortieId == bs.Id)
             {
                 Lignes[i].PropertyChanged -= LineChanged;
                 Lignes.RemoveAt(i);
             }
         }
-        LinkedBls.Remove(bl);
+        LinkedBonSorties.Remove(bs);
         RefreshTotals();
     }
 
     [RelayCommand]
-    private void OpenLinkedBl(LinkedBlRow? bl)
+    private void OpenLinkedBonSortie(LinkedBonSortieRow? bs)
     {
-        if (bl is null) return;
-        var vm = _sp.GetRequiredService<BLEditViewModel>();
-        vm.Load(bl.Id);
+        if (bs is null) return;
+        var vm = _sp.GetRequiredService<ReservationEditViewModel>();
+        vm.Load(bs.Id);
         _workspace.Open(vm);
     }
 
-    [RelayCommand]
-    private async Task ShowBlPickerAsync(CancellationToken cancellationToken)
-    {
-        if (ClientId == 0) return;
-        var excludeIds = LinkedBls.Select(b => b.Id).Concat(Lignes.Where(l => l.BonLivraisonId.HasValue).Select(l => l.BonLivraisonId!.Value)).Distinct().ToList();
-        var available = await _blLinkService.GetAvailableBlsForClientAsync(ClientId, FactureId, cancellationToken);
-        var filtered = available.Where(b => !excludeIds.Contains(b.Id)).ToList();
-        if (filtered.Count == 0)
-        {
-            await _dialog.ShowInfoAsync(_locale.T("Fact_Title"), _locale.T("Fact_NoAvailableBls"), cancellationToken);
-            return;
-        }
+    public void LoadFromBonSortie(int bsId) => _ = LoadFromBonSortieAsync(bsId, CancellationToken.None);
 
-        var pickerItems = filtered.Select(b =>
-        {
-            var (_, _, ttc) = DocumentTotalsHelper.BonLivraisonTotals(b.Lignes ?? []);
-            var montantLabel = _locale.Tf("Doc_FmtTtc", ttc, Devise).TrimEnd();
-            return (b.Id, b.Numero, b.Date, montantLabel);
-        }).ToList();
-        var selectedIds = await _dialog.ShowBlPickerAsync(_locale.T("Fact_AddBl"), pickerItems, cancellationToken);
-        if (selectedIds == null || selectedIds.Count == 0) return;
-
-        foreach (var blId in selectedIds)
-            await AddBlLinesAsync(blId, cancellationToken);
-    }
-
-    [RelayCommand]
-    private async Task AddBlLinesAsync(int blId, CancellationToken cancellationToken)
-    {
-        var lines = await _blLinkService.LoadBlLinesAsync(blId, cancellationToken);
-        foreach (var l in lines)
-        {
-            l.PropertyChanged += LineChanged;
-            Lignes.Add(l);
-        }
-        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-        var b = await db.BonsLivraison.AsNoTracking().FirstAsync(b => b.Id == blId, cancellationToken);
-        LinkedBls.Add(new LinkedBlRow(b.Id, b.Numero, b.Date));
-        RefreshTotals();
-    }
-
-    public async Task LoadFromBlsAsync(IReadOnlyList<int> blIds, CancellationToken cancellationToken = default)
+    public async Task LoadFromBonSortieAsync(int bsId, CancellationToken cancellationToken = default)
     {
         var cfg = await _settings.GetAsync(cancellationToken);
         Devise = CurrencyHelper.FromSettings(cfg);
-        LinkedBls.Clear();
+        LinkedBonSorties.Clear();
         BonCommandeReference = string.Empty;
         Lignes.Clear();
         ResetAddProductSearch();
-        DevisId = null;
         FactureId = null;
         Date = new DateTimeOffset(DateTime.Today);
         DateEcheance = Date.AddDays(30);
@@ -686,78 +636,72 @@ public partial class FactureEditViewModel : BaseViewModel
         await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
         await LoadClientsAsync(db, cancellationToken);
 
-        var firstBlId = blIds[0];
-        var firstBl = await db.BonsLivraison.AsNoTracking().FirstAsync(b => b.Id == firstBlId, cancellationToken);
-        ClientId = firstBl.ClientId;
+        var bs = await db.BonsSortie.AsNoTracking()
+            .Include(x => x.ProduitLignes)
+            .Include(x => x.ServiceLignes)
+            .FirstAsync(x => x.Id == bsId, cancellationToken);
+        ClientId = bs.ClientId;
+        RemiseGlobale = bs.RemiseGlobale;
+        Note = bs.Note;
+        LinkedBonSorties.Add(new LinkedBonSortieRow(bs.Id, bs.Numero, bs.Date));
 
-        foreach (var blId in blIds)
-        {
-            var bl = await db.BonsLivraison.AsNoTracking().FirstAsync(b => b.Id == blId, cancellationToken);
-            LinkedBls.Add(new LinkedBlRow(bl.Id, bl.Numero, bl.Date));
-            var lines = await _blLinkService.LoadBlLinesAsync(blId, cancellationToken);
-            foreach (var l in lines)
-            {
-                l.PropertyChanged += LineChanged;
-                Lignes.Add(l);
-            }
-        }
-
-        HookLines();
-        CanEditDraft = true;
-        MontantPaye = 0;
-        Paiements.Clear();
-        Title = blIds.Count > 1 ? _locale.T("Fact_FromMultiBl") : _locale.T("Fact_FromBl");
-        RefreshTotals();
-    }
-
-    public async Task LoadFromDevisAsync(int devisId, CancellationToken cancellationToken = default)
-    {
-        var cfg = await _settings.GetAsync(cancellationToken);
-        Devise = CurrencyHelper.FromSettings(cfg);
-        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-        var d = await db.Devis.Include(x => x.Lignes).FirstAsync(x => x.Id == devisId, cancellationToken);
-        DevisId = d.Id;
-        LinkedBls.Clear();
-        BonCommandeReference = string.Empty;
-        FactureId = null;
-        ClientId = d.ClientId;
-        Date = new DateTimeOffset(DateTime.Today);
-        DateEcheance = Date.AddDays(30);
-        EstPayee = false;
-        Numero = _locale.T("Fact_NewNumPlaceholder");
-        RemiseGlobale = d.RemiseGlobale;
-        await LoadClientsAsync(db, cancellationToken);
-        Lignes.Clear();
-        ResetAddProductSearch();
+        var produitIds = bs.ProduitLignes.Where(l => l.ProduitId is > 0).Select(l => l.ProduitId!.Value).Distinct().ToList();
+        var unites = produitIds.Count == 0
+            ? new Dictionary<int, string>()
+            : await db.Produits.AsNoTracking()
+                .Where(p => produitIds.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id, p => p.Unite, cancellationToken);
         var catalogRefs = await DocumentLineCatalogLookups.LoadAsync(
             db,
-            d.Lignes.Select(l => (l.ProduitId, l.ServiceId)),
+            bs.ProduitLignes.Select(l => (l.ProduitId, (int?)null))
+                .Concat(bs.ServiceLignes.Select(l => ((int?)null, l.ServiceId))),
             cancellationToken);
-        foreach (var l in d.Lignes)
+
+        foreach (var l in bs.ProduitLignes.OrderBy(x => x.Id))
         {
-            Lignes.Add(new FactureLineRow
+            var row = new FactureLineRow
             {
+                BonSortieId = bs.Id,
                 ProduitId = l.ProduitId,
-                ServiceId = l.ServiceId,
-                Reference = catalogRefs.GetReference(l.ProduitId, l.ServiceId),
+                ServiceId = null,
+                Reference = catalogRefs.GetReference(l.ProduitId, null),
                 Designation = l.Designation,
-                Conditionnement = l.Conditionnement,
+                Conditionnement = l.ProduitId is { } pid && unites.TryGetValue(pid, out var u) ? u : string.Empty,
                 Quantite = l.Quantite,
                 PrixUnitaireHt = l.PrixUnitaireHT,
                 Remise = l.Remise,
                 TauxTva = l.TauxTVA
-            });
+            };
+            row.PropertyChanged += LineChanged;
+            Lignes.Add(row);
+        }
+
+        foreach (var l in bs.ServiceLignes.OrderBy(x => x.Id))
+        {
+            var row = new FactureLineRow
+            {
+                BonSortieId = bs.Id,
+                ProduitId = null,
+                ServiceId = l.ServiceId,
+                Reference = catalogRefs.GetReference(null, l.ServiceId),
+                Designation = l.Designation,
+                Conditionnement = string.Empty,
+                Quantite = l.Quantite,
+                PrixUnitaireHt = l.PrixUnitaireHT,
+                Remise = l.Remise,
+                TauxTva = l.TauxTVA
+            };
+            row.PropertyChanged += LineChanged;
+            Lignes.Add(row);
         }
 
         HookLines();
         CanEditDraft = true;
         MontantPaye = 0;
         Paiements.Clear();
-        Title = _locale.T("Fact_FromDevis");
+        Title = _locale.T("Fact_FromBonSortie");
         RefreshTotals();
     }
-
-    public void LoadFromDevis(int devisId) => _ = LoadFromDevisAsync(devisId, CancellationToken.None);
 
     [RelayCommand]
     private void RemoveLine(FactureLineRow? row)
@@ -813,7 +757,6 @@ public partial class FactureEditViewModel : BaseViewModel
                 {
                     Numero = num,
                     ClientId = ClientId,
-                    DevisId = DevisId,
                     Date = Date.DateTime,
                     DateEcheance = DateEcheance.DateTime,
                     EstPayee = EstPayee,
@@ -834,7 +777,7 @@ public partial class FactureEditViewModel : BaseViewModel
                         PrixUnitaireHT = l.PrixUnitaireHt,
                         Remise = l.Remise,
                         TauxTVA = l.TauxTva,
-                        BonLivraisonId = l.BonLivraisonId
+                        BonSortieId = l.BonSortieId
                     });
                 }
 
@@ -843,11 +786,11 @@ public partial class FactureEditViewModel : BaseViewModel
                 await db.SaveChangesAsync(cancellationToken);
                 FactureId = entity.Id;
 
-                foreach (var bl in LinkedBls)
+                foreach (var bs in LinkedBonSorties)
                 {
-                    var blEntity = await db.BonsLivraison.FindAsync(bl.Id);
-                    if (blEntity != null)
-                        blEntity.FactureId = entity.Id;
+                    var bsEntity = await db.BonsSortie.FindAsync([bs.Id], cancellationToken);
+                    if (bsEntity != null)
+                        bsEntity.FactureId = entity.Id;
                 }
 
                 await db.SaveChangesAsync(cancellationToken);
@@ -857,7 +800,6 @@ public partial class FactureEditViewModel : BaseViewModel
                 entity = await db.Factures.Include(f => f.Lignes).FirstAsync(f => f.Id == FactureId, cancellationToken);
 
                 entity.ClientId = ClientId;
-                entity.DevisId = DevisId;
                 entity.Date = Date.DateTime;
                 entity.DateEcheance = DateEcheance.DateTime;
                 entity.EstPayee = EstPayee;
@@ -877,7 +819,7 @@ public partial class FactureEditViewModel : BaseViewModel
                         PrixUnitaireHT = l.PrixUnitaireHt,
                         Remise = l.Remise,
                         TauxTVA = l.TauxTva,
-                        BonLivraisonId = l.BonLivraisonId
+                        BonSortieId = l.BonSortieId
                     });
                 }
 
@@ -885,19 +827,19 @@ public partial class FactureEditViewModel : BaseViewModel
                 await db.SaveChangesAsync(cancellationToken);
             }
 
-            var linkedBlIds = LinkedBls.Select(b => b.Id).ToHashSet();
-            var existingBls = await db.BonsLivraison.Where(b => b.FactureId == FactureId).ToListAsync(cancellationToken);
-            foreach (var bl in existingBls)
+            var linkedBsIds = LinkedBonSorties.Select(b => b.Id).ToHashSet();
+            var existingBs = await db.BonsSortie.Where(b => b.FactureId == FactureId).ToListAsync(cancellationToken);
+            foreach (var bs in existingBs)
             {
-                if (!linkedBlIds.Contains(bl.Id))
-                    bl.FactureId = null;
+                if (!linkedBsIds.Contains(bs.Id))
+                    bs.FactureId = null;
             }
 
-            foreach (var bl in LinkedBls)
+            foreach (var bs in LinkedBonSorties)
             {
-                var blEntity = await db.BonsLivraison.FindAsync(bl.Id);
-                if (blEntity != null)
-                    blEntity.FactureId = FactureId;
+                var bsEntity = await db.BonsSortie.FindAsync([bs.Id], cancellationToken);
+                if (bsEntity != null)
+                    bsEntity.FactureId = FactureId;
             }
 
             await db.SaveChangesAsync(cancellationToken);

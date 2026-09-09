@@ -4,7 +4,6 @@ using CommunityToolkit.Mvvm.Input;
 using GestionCommerciale.Modules.Auth.Services;
 using GestionCommerciale.Modules.AvoirFournisseur.ViewModels;
 using GestionCommerciale.Modules.Facturation.ViewModels;
-using GestionCommerciale.Modules.Livraison.ViewModels;
 using GestionCommerciale.Modules.Reception.ViewModels;
 using GestionCommerciale.Modules.Reservation.ViewModels;
 using GestionCommerciale.Modules.Stock;
@@ -197,11 +196,6 @@ public partial class StockMainViewModel : BaseViewModel
     {
         if (movements.Count == 0) return;
 
-        var blIds = movements
-            .Where(m => m.OrigineType == StockMovementService.OrigineTypeBonLivraison && m.OrigineId.HasValue)
-            .Select(m => m.OrigineId!.Value)
-            .Distinct()
-            .ToList();
         var brIds = movements
             .Where(m => m.OrigineType == StockMovementService.OrigineTypeBonReception && m.OrigineId.HasValue)
             .Select(m => m.OrigineId!.Value)
@@ -217,11 +211,16 @@ public partial class StockMainViewModel : BaseViewModel
             .Select(m => m.OrigineId!.Value)
             .Distinct()
             .ToList();
+        var locIds = movements
+            .Where(m => m.OrigineType == StockMovementService.OrigineTypeLocation && m.OrigineId.HasValue)
+            .Select(m => m.OrigineId!.Value)
+            .Distinct()
+            .ToList();
 
-        var blParties = blIds.Count == 0
+        var locParties = locIds.Count == 0
             ? []
-            : await db.BonsLivraison.AsNoTracking()
-                .Where(b => blIds.Contains(b.Id))
+            : await db.BonsSortie.AsNoTracking()
+                .Where(b => locIds.Contains(b.Id))
                 .Select(b => new { b.Id, b.ClientId })
                 .ToListAsync(cancellationToken);
 
@@ -246,7 +245,7 @@ public partial class StockMainViewModel : BaseViewModel
                 .Select(a => new { a.Id, a.FournisseurId })
                 .ToListAsync(cancellationToken);
 
-        var tierIds = blParties.Select(x => x.ClientId)
+        var tierIds = locParties.Select(x => x.ClientId)
             .Concat(brParties.Select(x => x.FournisseurId))
             .Concat(avoirParties.Select(x => x.ClientId))
             .Concat(avoirFournisseurParties.Select(x => x.FournisseurId))
@@ -259,18 +258,18 @@ public partial class StockMainViewModel : BaseViewModel
                 .Where(t => tierIds.Contains(t.Id))
                 .ToDictionaryAsync(t => t.Id, t => t.Nom, cancellationToken);
 
-        var blMap = blParties.ToDictionary(x => x.Id, x => tierNames.GetValueOrDefault(x.ClientId, string.Empty));
+        var locMap = locParties.ToDictionary(x => x.Id, x => tierNames.GetValueOrDefault(x.ClientId, string.Empty));
         var brMap = brParties.ToDictionary(x => x.Id, x => tierNames.GetValueOrDefault(x.FournisseurId, string.Empty));
         var avoirMap = avoirParties.ToDictionary(x => x.Id, x => tierNames.GetValueOrDefault(x.ClientId, string.Empty));
         var avoirFournisseurMap = avoirFournisseurParties.ToDictionary(x => x.Id, x => tierNames.GetValueOrDefault(x.FournisseurId, string.Empty));
 
-        var blPriceMap = blIds.Count == 0
+        var locPriceMap = locIds.Count == 0
             ? new Dictionary<(int, int), decimal>()
-            : (await db.BonLivraisonLignes.AsNoTracking()
-                .Where(l => blIds.Contains(l.BLId) && l.ProduitId != null)
-                .Select(l => new { l.BLId, ProduitId = l.ProduitId!.Value, l.PrixUnitaireHT })
+            : (await db.BonSortieProduitLignes.AsNoTracking()
+                .Where(l => locIds.Contains(l.BonSortieId) && l.ProduitId != null)
+                .Select(l => new { l.BonSortieId, ProduitId = l.ProduitId!.Value, l.PrixUnitaireHT })
                 .ToListAsync(cancellationToken))
-                .GroupBy(l => (l.BLId, l.ProduitId))
+                .GroupBy(l => (l.BonSortieId, l.ProduitId))
                 .ToDictionary(g => g.Key, g => g.Last().PrixUnitaireHT);
 
         var brPriceMap = brIds.Count == 0
@@ -304,7 +303,7 @@ public partial class StockMainViewModel : BaseViewModel
         {
             m.PartyName = m.OrigineType switch
             {
-                StockMovementService.OrigineTypeBonLivraison when m.OrigineId is int blId => blMap.GetValueOrDefault(blId, string.Empty),
+                StockMovementService.OrigineTypeLocation when m.OrigineId is int locId => locMap.GetValueOrDefault(locId, string.Empty),
                 StockMovementService.OrigineTypeBonReception when m.OrigineId is int brId => brMap.GetValueOrDefault(brId, string.Empty),
                 StockMovementService.OrigineTypeAvoir when m.OrigineId is int avoirId => avoirMap.GetValueOrDefault(avoirId, string.Empty),
                 StockMovementService.OrigineTypeAvoirFournisseur when m.OrigineId is int avfId => avoirFournisseurMap.GetValueOrDefault(avfId, string.Empty),
@@ -318,7 +317,7 @@ public partial class StockMainViewModel : BaseViewModel
             {
                 price = m.OrigineType switch
                 {
-                    StockMovementService.OrigineTypeBonLivraison when blPriceMap.TryGetValue((docId, m.ProduitId), out var blP) => blP,
+                    StockMovementService.OrigineTypeLocation when locPriceMap.TryGetValue((docId, m.ProduitId), out var locP) => locP,
                     StockMovementService.OrigineTypeBonReception when brPriceMap.TryGetValue((docId, m.ProduitId), out var brP) => brP,
                     StockMovementService.OrigineTypeAvoir when avoirPriceMap.TryGetValue((docId, m.ProduitId), out var avP) => avP,
                     StockMovementService.OrigineTypeAvoirFournisseur when avoirFournisseurPriceMap.TryGetValue((docId, m.ProduitId), out var avfP) => avfP,
@@ -392,13 +391,6 @@ public partial class StockMainViewModel : BaseViewModel
             case StockMovementService.OrigineTypeLocation:
             {
                 var vm = _sp.GetRequiredService<ReservationEditViewModel>();
-                vm.Load(id);
-                _workspace.Open(vm);
-                break;
-            }
-            case StockMovementService.OrigineTypeBonLivraison:
-            {
-                var vm = _sp.GetRequiredService<BLEditViewModel>();
                 vm.Load(id);
                 _workspace.Open(vm);
                 break;

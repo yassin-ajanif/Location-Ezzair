@@ -6,7 +6,6 @@ public class Facture : BaseEntity
 {
     public string Numero { get; set; } = string.Empty;
     public int ClientId { get; set; }
-    public int? DevisId { get; set; }
     public DateTime Date { get; set; }
     public DateTime DateEcheance { get; set; }
     public bool EstPayee { get; set; }

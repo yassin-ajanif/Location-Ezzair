@@ -7,8 +7,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GestionCommerciale.Modules.Auth.Services;
-using GestionCommerciale.Modules.Livraison.Models;
-using GestionCommerciale.Modules.Livraison.ViewModels;
+using GestionCommerciale.Modules.Facturation.ViewModels;
 using GestionCommerciale.Modules.Reservation.Models;
 using GestionCommerciale.Modules.Reservation.Services;
 using GestionCommerciale.Shared.Database;
@@ -70,7 +69,7 @@ public partial class ReservationEditViewModel : BaseViewModel
 
     [ObservableProperty] private string _btnBack = string.Empty;
     [ObservableProperty] private string _btnSave = string.Empty;
-    [ObservableProperty] private string _btnToBl = string.Empty;
+    [ObservableProperty] private string _btnToFacture = string.Empty;
     [ObservableProperty] private string _menuDelete = string.Empty;
     [ObservableProperty] private string _lblClient = string.Empty;
     [ObservableProperty] private string _wmClientSearch = string.Empty;
@@ -233,7 +232,7 @@ public partial class ReservationEditViewModel : BaseViewModel
     {
         BtnBack = _locale.T("Btn_Back");
         BtnSave = _locale.T("Btn_Save");
-        BtnToBl = _locale.T("Btn_ToBL");
+        BtnToFacture = _locale.T("Btn_ToFacture");
         MenuDelete = _locale.T("Loc_MenuDelete");
         LblClient = _locale.T("Lbl_Client");
         WmClientSearch = _locale.T("Wm_SearchClient");
@@ -243,9 +242,9 @@ public partial class ReservationEditViewModel : BaseViewModel
         LblDateRetour = _locale.T("Loc_LblDateRetour");
         LblStatut = _locale.T("Loc_ColStatut");
         LblCaution = _locale.T("Loc_LblCaution");
-        LblNote = _locale.T("DevisList_ColNote");
+        LblNote = _locale.T("Loc_LblNote");
         BtnRemoveLine = _locale.T("Btn_RemoveLine");
-        LblAddProduct = _locale.T("Devis_LblAddProduct");
+        LblAddProduct = _locale.T("Fact_LblAddProduct");
         WmAddProduct = _locale.T("Wm_SearchCatalog");
         LblTotals = _locale.T("Lbl_Totals");
         LblProduitsSection = _locale.T("Res_SectionProduits");
@@ -302,8 +301,8 @@ public partial class ReservationEditViewModel : BaseViewModel
     [ObservableProperty] private string _note = string.Empty;
     [ObservableProperty] private ReservationProduitLineRow? _selectedProduitLine;
     [ObservableProperty] private ReservationServiceLineRow? _selectedServiceLine;
-    [ObservableProperty] private int? _bonLivraisonId;
-    [ObservableProperty] private string _blLabel = string.Empty;
+    [ObservableProperty] private int? _factureId;
+    [ObservableProperty] private string _factureLabel = string.Empty;
     [ObservableProperty] private DateTime _newRetourDate = DateTime.Today;
     [ObservableProperty] private ReservationProduitLineRow? _newRetourProduit;
     [ObservableProperty] private decimal _newRetourQuantite = 1;
@@ -311,13 +310,13 @@ public partial class ReservationEditViewModel : BaseViewModel
     [ObservableProperty] private string _newRetourNote = string.Empty;
     [ObservableProperty] private ReservationRetourRow? _selectedRetour;
 
-    public bool HasBlLabel => !string.IsNullOrEmpty(BlLabel);
+    public bool HasFactureLabel => !string.IsNullOrEmpty(FactureLabel);
 
     partial void OnReservationIdChanged(int? value) => RemoveReservationCommand.NotifyCanExecuteChanged();
 
     partial void OnStatutChanged(StatutBonSortie value) => NotifyStatutChip();
 
-    partial void OnBlLabelChanged(string value) => OnPropertyChanged(nameof(HasBlLabel));
+    partial void OnFactureLabelChanged(string value) => OnPropertyChanged(nameof(HasFactureLabel));
 
     private void NotifyStatutChip()
     {
@@ -327,26 +326,26 @@ public partial class ReservationEditViewModel : BaseViewModel
         StatutChipBorder = ReservationStatutLabels.ChipBorder(Statut);
     }
 
-    private void ClearBlLinkUi()
+    private void ClearFactureLinkUi()
     {
-        BonLivraisonId = null;
-        BlLabel = string.Empty;
+        FactureId = null;
+        FactureLabel = string.Empty;
     }
 
-    private async Task RefreshBlLabelAsync(AppDbContext db, int? blId, CancellationToken cancellationToken)
+    private async Task RefreshFactureLabelAsync(AppDbContext db, int? factureId, CancellationToken cancellationToken)
     {
-        BonLivraisonId = blId;
-        if (blId is not { } id)
+        FactureId = factureId;
+        if (factureId is not { } id)
         {
-            BlLabel = string.Empty;
+            FactureLabel = string.Empty;
             return;
         }
 
-        var num = await db.BonsLivraison.AsNoTracking()
-            .Where(b => b.Id == id)
-            .Select(b => b.Numero)
+        var num = await db.Factures.AsNoTracking()
+            .Where(f => f.Id == id)
+            .Select(f => f.Numero)
             .FirstOrDefaultAsync(cancellationToken);
-        BlLabel = string.IsNullOrEmpty(num) ? string.Empty : _locale.Tf("Loc_BlChip", num);
+        FactureLabel = string.IsNullOrEmpty(num) ? string.Empty : _locale.Tf("Loc_FactureChip", num);
     }
 
     private bool CanRemoveReservation() => ReservationId != null;
@@ -569,7 +568,7 @@ public partial class ReservationEditViewModel : BaseViewModel
             Statut = StatutBonSortie.EnCours;
             Caution = 0;
             Note = string.Empty;
-            ClearBlLinkUi();
+            ClearFactureLinkUi();
             Title = _locale.T("Loc_NewTitle");
             RefreshTotals();
             RefreshDerivedStatut();
@@ -590,7 +589,7 @@ public partial class ReservationEditViewModel : BaseViewModel
         Statut = ReservationStatutLabels.Normalize(b.Statut);
         Caution = b.Caution;
         Note = b.Note;
-        await RefreshBlLabelAsync(db, b.BonLivraisonId, cancellationToken);
+        await RefreshFactureLabelAsync(db, b.FactureId, cancellationToken);
 
         var produitIds = b.ProduitLignes.Where(l => l.ProduitId is > 0).Select(l => l.ProduitId!.Value).Distinct().ToList();
         var serviceIds = b.ServiceLignes.Where(l => l.ServiceId is > 0).Select(l => l.ServiceId!.Value).Distinct().ToList();
@@ -1041,11 +1040,11 @@ public partial class ReservationEditViewModel : BaseViewModel
     }
 
     [RelayCommand]
-    private async Task ToBlAsync(CancellationToken cancellationToken)
+    private async Task ToFactureAsync(CancellationToken cancellationToken)
     {
         if (ReservationId is not { } resId)
         {
-            await _dialog.ShowErrorAsync(_locale.T("Loc_Title"), _locale.T("Loc_ToBlNeedSave"), cancellationToken);
+            await _dialog.ShowErrorAsync(_locale.T("Loc_Title"), _locale.T("Loc_ToFactureNeedSave"), cancellationToken);
             return;
         }
 
@@ -1059,77 +1058,25 @@ public partial class ReservationEditViewModel : BaseViewModel
         try
         {
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-            var res = await db.BonsSortie
-                .Include(l => l.ProduitLignes)
-                .Include(l => l.ServiceLignes)
-                .FirstAsync(l => l.Id == resId, cancellationToken);
+            var res = await db.BonsSortie.AsNoTracking().FirstAsync(l => l.Id == resId, cancellationToken);
 
-            if (res.BonLivraisonId is { } existingBlId)
+            if (res.FactureId is { } existingFactureId)
             {
-                var exists = await db.BonsLivraison.AsNoTracking().AnyAsync(b => b.Id == existingBlId, cancellationToken);
+                var exists = await db.Factures.AsNoTracking().AnyAsync(f => f.Id == existingFactureId, cancellationToken);
                 if (exists)
                 {
-                    OpenBl(existingBlId);
+                    OpenFacture(existingFactureId);
                     return;
                 }
-
-                res.BonLivraisonId = null;
-                await db.SaveChangesAsync(cancellationToken);
             }
 
-            var blNumero = await _numbers.NextBLAsync(cancellationToken);
-            var bl = new BonLivraison
-            {
-                Numero = blNumero,
-                ClientId = res.ClientId,
-                Date = DateTime.Today,
-                BonSortieId = res.Id,
-                Note = res.Note ?? string.Empty,
-                CreatedByUserId = _session.UserId
-            };
-            foreach (var l in res.ProduitLignes.OrderBy(x => x.Id))
-            {
-                bl.Lignes.Add(new BonLivraisonLigne
-                {
-                    ProduitId = l.ProduitId,
-                    Designation = l.Designation,
-                    QuantiteCommandee = l.Quantite,
-                    QuantiteLivree = l.Quantite,
-                    PrixUnitaireHT = l.PrixUnitaireHT,
-                    Remise = l.Remise,
-                    TauxTVA = l.TauxTVA,
-                    CreatedByUserId = _session.UserId
-                });
-            }
-            foreach (var l in res.ServiceLignes.OrderBy(x => x.Id))
-            {
-                bl.Lignes.Add(new BonLivraisonLigne
-                {
-                    ServiceId = l.ServiceId,
-                    Designation = l.Designation,
-                    QuantiteCommandee = l.Quantite,
-                    QuantiteLivree = l.Quantite,
-                    PrixUnitaireHT = l.PrixUnitaireHT,
-                    Remise = l.Remise,
-                    TauxTVA = l.TauxTVA,
-                    CreatedByUserId = _session.UserId
-                });
-            }
-
-            db.BonsLivraison.Add(bl);
-            await db.SaveChangesAsync(cancellationToken);
-
-            res.BonLivraisonId = bl.Id;
-            await db.SaveChangesAsync(cancellationToken);
-
-            // No stock sync on BL — BonSortie owns stock.
-            BonLivraisonId = bl.Id;
-            BlLabel = _locale.Tf("Loc_BlChip", bl.Numero);
-            OpenBl(bl.Id);
+            var vm = _sp.GetRequiredService<FactureEditViewModel>();
+            await vm.LoadFromBonSortieAsync(resId, cancellationToken);
+            _workspace.Open(vm);
         }
         catch (Exception ex)
         {
-            AppLog.Error("Échec Vers BL depuis réservation", ex, "ReservationEditViewModel.ToBlAsync");
+            AppLog.Error("Échec Vers Facture depuis bon de sortie", ex, "ReservationEditViewModel.ToFactureAsync");
             await _dialog.ShowErrorAsync(_locale.T("Loc_Title"), ex.Message, cancellationToken);
         }
         finally
@@ -1138,10 +1085,10 @@ public partial class ReservationEditViewModel : BaseViewModel
         }
     }
 
-    private void OpenBl(int blId)
+    private void OpenFacture(int factureId)
     {
-        var vm = _sp.GetRequiredService<BLEditViewModel>();
-        vm.Load(blId);
+        var vm = _sp.GetRequiredService<FactureEditViewModel>();
+        vm.Load(factureId);
         _workspace.Open(vm);
     }
 }

@@ -68,9 +68,6 @@ public partial class ReportingViewModel : BaseViewModel
     [ObservableProperty] private string _caMoisCourant = string.Empty;
     [ObservableProperty] private string _caMoisPrecedent = string.Empty;
 
-    [ObservableProperty] private string _kpiDevis30 = string.Empty;
-    [ObservableProperty] private string _kpiDevisExpire = string.Empty;
-    [ObservableProperty] private string _kpiBlMonth = string.Empty;
     [ObservableProperty] private string _kpiBc = string.Empty;
     [ObservableProperty] private string _kpiBrMonth = string.Empty;
     [ObservableProperty] private string _kpiEncours = string.Empty;
@@ -197,9 +194,6 @@ public partial class ReportingViewModel : BaseViewModel
         LineCaCurrent = data.LineCaCurrent;
         LineCaPrev = data.LineCaPrev;
         LineCaDelta = data.LineCaDelta;
-        KpiDevis30 = data.KpiDevis30;
-        KpiDevisExpire = data.KpiDevisExpire;
-        KpiBlMonth = data.KpiBlMonth;
         KpiBc = data.KpiBc;
         KpiBrMonth = data.KpiBrMonth;
         KpiStock = data.KpiStock;
@@ -226,17 +220,10 @@ public partial class ReportingViewModel : BaseViewModel
         var startPrev = startCur.AddMonths(-1);
         var endCur = startCur.AddMonths(1);
         var endPrev = startCur;
-        var since30 = now.AddDays(-30);
-        var expireUntil = now.AddDays(14);
 
         var caCur = await InvoiceTtcSumAsync(db, startCur, endCur, ct);
         var caPrev = await InvoiceTtcSumAsync(db, startPrev, endPrev, ct);
 
-        var devis30 = await db.Devis.AsNoTracking().CountAsync(d => d.Date >= since30, ct);
-        var devisExpire = await db.Devis.AsNoTracking().CountAsync(
-            d => d.DateValidite >= now && d.DateValidite <= expireUntil, ct);
-        var blMonth = await db.BonsLivraison.AsNoTracking().CountAsync(
-            b => b.Date >= startCur && b.Date < endCur, ct);
         var bcMonth = await db.BonsCommande.AsNoTracking().CountAsync(
             b => b.Date >= startCur && b.Date < endCur, ct);
         var bcTotal = await db.BonsCommande.AsNoTracking().CountAsync(ct);
@@ -270,16 +257,16 @@ public partial class ReportingViewModel : BaseViewModel
                 share));
         }
 
-        var blSince = startCur.AddMonths(-11);
-        var blLignes = await (
-            from l in db.BonLivraisonLignes.AsNoTracking()
-            join b in db.BonsLivraison.AsNoTracking() on l.BLId equals b.Id
-            where b.Date >= blSince
-            select new { l.ProduitId, l.QuantiteLivree }
+        var bsSince = startCur.AddMonths(-11);
+        var bsLignes = await (
+            from l in db.BonSortieProduitLignes.AsNoTracking()
+            join b in db.BonsSortie.AsNoTracking() on l.BonSortieId equals b.Id
+            where b.Date >= bsSince && l.ProduitId != null
+            select new { ProduitId = l.ProduitId!.Value, l.Quantite }
         ).ToListAsync(ct);
-        var topProd = blLignes
+        var topProd = bsLignes
             .GroupBy(l => l.ProduitId)
-            .Select(g => new { ProduitId = g.Key, Qty = g.Sum(x => x.QuantiteLivree) })
+            .Select(g => new { ProduitId = g.Key, Qty = g.Sum(x => x.Quantite) })
             .OrderByDescending(x => x.Qty)
             .Take(5)
             .ToList();
@@ -328,9 +315,6 @@ public partial class ReportingViewModel : BaseViewModel
             LineCaCurrent = FormatCaLine(_locale, "Report_FmtCurrentMonth", caCur, dev),
             LineCaPrev = FormatCaLine(_locale, "Report_FmtPrevMonth", caPrev, dev),
             LineCaDelta = FormatCaDelta(caCur, caPrev, dev, _locale),
-            KpiDevis30 = _locale.Tf("Report_KpiDevis30", devis30.ToString(CultureInfo.CurrentCulture)),
-            KpiDevisExpire = _locale.Tf("Report_KpiDevisExpire", devisExpire.ToString(CultureInfo.CurrentCulture)),
-            KpiBlMonth = _locale.Tf("Report_KpiBlMonth", blMonth.ToString(CultureInfo.CurrentCulture)),
             KpiBc = _locale.Tf("Report_KpiBc", bcMonth.ToString(CultureInfo.CurrentCulture), bcTotal.ToString(CultureInfo.CurrentCulture)),
             KpiBrMonth = _locale.Tf("Report_KpiBrMonth", brMonth.ToString(CultureInfo.CurrentCulture)),
             KpiStock = _locale.Tf("Report_KpiStock", actifs.ToString(CultureInfo.CurrentCulture), sousMin.ToString(CultureInfo.CurrentCulture), pctSous.ToString("F0", CultureInfo.CurrentCulture)),
@@ -374,9 +358,6 @@ internal sealed class ReportData
     public string LineCaCurrent { get; init; } = string.Empty;
     public string LineCaPrev { get; init; } = string.Empty;
     public string LineCaDelta { get; init; } = string.Empty;
-    public string KpiDevis30 { get; init; } = string.Empty;
-    public string KpiDevisExpire { get; init; } = string.Empty;
-    public string KpiBlMonth { get; init; } = string.Empty;
     public string KpiBc { get; init; } = string.Empty;
     public string KpiBrMonth { get; init; } = string.Empty;
     public string KpiStock { get; init; } = string.Empty;

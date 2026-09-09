@@ -23,13 +23,6 @@
                   BorderBrush="{Binding IsNavAvailabilityActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=border}"
                   Margin="0,2,0,0"/>
 
-          <Button Content="{Binding NavPos}" Command="{Binding GoPosCommand}" HorizontalAlignment="Stretch"
-                  IsVisible="False"
-                  Background="{Binding IsNavPosActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=bg}"
-                  Foreground="{Binding IsNavPosActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=fg}"
-                  BorderBrush="{Binding IsNavPosActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=border}"
-                  Margin="0,2,0,0"/>
-
           <Button Command="{Binding ToggleVenteNavCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
                   Background="Transparent" BorderThickness="0" Padding="0,10,0,0" Margin="0,2,0,0">
             <StackPanel Orientation="Horizontal" Spacing="6">
@@ -42,10 +35,6 @@
                     Background="{Binding IsNavClientsActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=bg}"
                     Foreground="{Binding IsNavClientsActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=fg}"
                     BorderBrush="{Binding IsNavClientsActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=border}"/>
-            <Button Content="{Binding NavDevis}" Command="{Binding GoDevisCommand}" HorizontalAlignment="Stretch" IsVisible="{Binding ShowNavDevis}"
-                    Background="{Binding IsNavDevisActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=bg}"
-                    Foreground="{Binding IsNavDevisActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=fg}"
-                    BorderBrush="{Binding IsNavDevisActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=border}"/>
             <Button Content="{Binding NavReservation}" Command="{Binding GoReservationCommand}" HorizontalAlignment="Stretch" IsVisible="{Binding ShowNavReservation}"
                     Background="{Binding IsNavReservationActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=bg}"
                     Foreground="{Binding IsNavReservationActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=fg}"
@@ -54,10 +43,6 @@
                     Background="{Binding IsNavLocationActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=bg}"
                     Foreground="{Binding IsNavLocationActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=fg}"
                     BorderBrush="{Binding IsNavLocationActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=border}"/>
-            <Button Content="{Binding NavBl}" Command="{Binding GoBLCommand}" HorizontalAlignment="Stretch" IsVisible="{Binding ShowNavBL}"
-                    Background="{Binding IsNavBlActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=bg}"
-                    Foreground="{Binding IsNavBlActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=fg}"
-                    BorderBrush="{Binding IsNavBlActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=border}"/>
             <Button Content="{Binding NavEtatClient}" Command="{Binding GoEtatClientCommand}" HorizontalAlignment="Stretch" IsVisible="{Binding ShowNavEtatClient}"
                     Background="{Binding IsNavEtatClientActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=bg}"
                     Foreground="{Binding IsNavEtatClientActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=fg}"

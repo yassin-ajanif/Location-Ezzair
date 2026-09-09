@@ -19,12 +19,12 @@ public partial class FactureEditView : UserControl
             cm.DataContext = dc;
     }
 
-    private void OnLinkedBlNumeroTapped(object? sender, TappedEventArgs e)
+    private void OnLinkedBonSortieNumeroTapped(object? sender, TappedEventArgs e)
     {
         if (DataContext is not FactureEditViewModel vm) return;
-        if (sender is not Control { DataContext: LinkedBlRow bl }) return;
+        if (sender is not Control { DataContext: LinkedBonSortieRow bs }) return;
         e.Handled = true;
-        vm.OpenLinkedBlCommand.Execute(bl);
+        vm.OpenLinkedBonSortieCommand.Execute(bs);
     }
 
     private void InitializeComponent() => AvaloniaXamlLoader.Load(this);

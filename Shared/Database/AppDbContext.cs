@@ -1,8 +1,6 @@
 using GestionCommerciale.Modules.Charges.Models;
 using GestionCommerciale.Modules.Services.Models;
-using GestionCommerciale.Modules.Devis.Models;
 using GestionCommerciale.Modules.Facturation.Models;
-using GestionCommerciale.Modules.Livraison.Models;
 using GestionCommerciale.Modules.Reservation.Models;
 using GestionCommerciale.Modules.AvoirFournisseur.Models;
 using GestionCommerciale.Modules.CommandeFournisseur.Models;
@@ -23,11 +21,6 @@ public class AppDbContext : DbContext
     public DbSet<Categorie> Categories => Set<Categorie>();
     public DbSet<Produit> Produits => Set<Produit>();
     public DbSet<MouvementStock> MouvementsStock => Set<MouvementStock>();
-    public DbSet<Devis> Devis => Set<Devis>();
-    public DbSet<DevisLigne> DevisLignes => Set<DevisLigne>();
-    public DbSet<DevisCondition> DevisConditions => Set<DevisCondition>();
-    public DbSet<BonLivraison> BonsLivraison => Set<BonLivraison>();
-    public DbSet<BonLivraisonLigne> BonLivraisonLignes => Set<BonLivraisonLigne>();
     public DbSet<BonCommande> BonsCommande => Set<BonCommande>();
     public DbSet<BonCommandeLigne> BonCommandeLignes => Set<BonCommandeLigne>();
     public DbSet<BonCommandeClient> BonsCommandeClient => Set<BonCommandeClient>();
@@ -74,29 +67,6 @@ public class AppDbContext : DbContext
         {
             e.Property(m => m.Type).HasConversion<int>();
             e.HasOne(m => m.Produit).WithMany().HasForeignKey(m => m.ProduitId).OnDelete(DeleteBehavior.Restrict);
-        });
-
-        modelBuilder.Entity<Devis>(e =>
-        {
-            e.HasMany(d => d.Lignes).WithOne(l => l.Devis).HasForeignKey(l => l.DevisId).OnDelete(DeleteBehavior.Cascade);
-            e.HasMany(d => d.Conditions).WithOne(c => c.Devis).HasForeignKey(c => c.DevisId).OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<BonLivraison>(e =>
-        {
-            e.HasMany(b => b.Lignes).WithOne(l => l.BonLivraison).HasForeignKey(l => l.BLId).OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(b => b.Facture).WithMany()
-                .HasForeignKey(b => b.FactureId)
-                .OnDelete(DeleteBehavior.SetNull);
-            e.HasOne<BonCommandeClient>().WithMany()
-                .HasForeignKey(b => b.BonCommandeClientId)
-                .OnDelete(DeleteBehavior.SetNull);
-            e.HasOne(b => b.BonSortie).WithMany()
-                .HasForeignKey(b => b.BonSortieId)
-                .OnDelete(DeleteBehavior.SetNull);
-            e.HasIndex(b => b.FactureId);
-            e.HasIndex(b => b.BonCommandeClientId);
-            e.HasIndex(b => b.BonSortieId);
         });
 
         modelBuilder.Entity<BonCommandeClient>(e =>
@@ -149,18 +119,10 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<FactureLigne>(e =>
         {
-            e.HasOne(l => l.BonLivraison).WithMany()
-                .HasForeignKey(l => l.BonLivraisonId)
+            e.HasOne(l => l.BonSortie).WithMany()
+                .HasForeignKey(l => l.BonSortieId)
                 .OnDelete(DeleteBehavior.SetNull);
-            e.HasIndex(l => l.BonLivraisonId);
-            e.HasOne<Service>().WithMany()
-                .HasForeignKey(l => l.ServiceId)
-                .OnDelete(DeleteBehavior.Restrict);
-            e.HasIndex(l => l.ServiceId);
-        });
-
-        modelBuilder.Entity<DevisLigne>(e =>
-        {
+            e.HasIndex(l => l.BonSortieId);
             e.HasOne<Service>().WithMany()
                 .HasForeignKey(l => l.ServiceId)
                 .OnDelete(DeleteBehavior.Restrict);
@@ -256,14 +218,6 @@ public class AppDbContext : DbContext
             e.HasIndex(s => s.Actif);
         });
 
-        modelBuilder.Entity<BonLivraisonLigne>(e =>
-        {
-            e.HasOne<Service>().WithMany()
-                .HasForeignKey(l => l.ServiceId)
-                .OnDelete(DeleteBehavior.Restrict);
-            e.HasIndex(l => l.ServiceId);
-        });
-
         modelBuilder.Entity<BonSortie>(e =>
         {
             e.ToTable("BonsSortie");
@@ -273,14 +227,10 @@ public class AppDbContext : DbContext
             e.HasOne(l => l.Facture).WithMany()
                 .HasForeignKey(l => l.FactureId)
                 .OnDelete(DeleteBehavior.SetNull);
-            e.HasOne(l => l.BonLivraison).WithMany()
-                .HasForeignKey(l => l.BonLivraisonId)
-                .OnDelete(DeleteBehavior.SetNull);
             e.HasOne(l => l.Reservation).WithMany()
                 .HasForeignKey(l => l.ReservationId)
                 .OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(l => l.FactureId);
-            e.HasIndex(l => l.BonLivraisonId);
             e.HasIndex(l => l.ReservationId);
             e.HasIndex(l => l.ClientId);
             e.HasIndex(l => l.Numero);

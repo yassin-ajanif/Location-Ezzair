@@ -12,7 +12,7 @@ public class PerformanceTestService
     private const int DocumentCount = 50_000;
     private const int DocumentsPerDay = 10;
     private const int InitialProductStock = 10_000;
-    private const string BlOrigineType = "BL";
+    private const string BsOrigineType = "LOC";
 
     private static readonly Random Rng = Random.Shared;
     private readonly string _cs;
@@ -46,11 +46,11 @@ public class PerformanceTestService
         progress.Report($"Création de {ClientCount:N0} clients...");
         await InsertClientsAsync(conn, max.TiersId, now, ct);
 
-        progress.Report($"Création de {DocumentCount:N0} bons de livraison (~{DocumentsPerDay}/jour sur {dayCount:N0} jours)...");
-        await InsertBlHeadersAsync(conn, max, now, startDate, ct);
+        progress.Report($"Création de {DocumentCount:N0} bons de sortie (~{DocumentsPerDay}/jour sur {dayCount:N0} jours)...");
+        await InsertBsHeadersAsync(conn, max, now, startDate, ct);
 
-        progress.Report("Création des lignes de bons de livraison...");
-        var blLines = await InsertBlLinesAsync(conn, max, ct);
+        progress.Report("Création des lignes de bons de sortie...");
+        var bsLines = await InsertBsLinesAsync(conn, max, ct);
 
         progress.Report($"Création de {DocumentCount:N0} factures (~{DocumentsPerDay}/jour sur {dayCount:N0} jours)...");
         var factureMeta = await InsertFactureHeadersAsync(conn, max, now, startDate, ct);
@@ -64,18 +64,18 @@ public class PerformanceTestService
         progress.Report("Création des paiements clients (soldes)...");
         var paiementCount = await InsertPaiementsAsync(conn, max.PaiementId, factureMeta, now, ct);
 
-        progress.Report("Création des mouvements de stock (sorties BL)...");
-        var mvtCount = await InsertStockMovementsAsync(conn, max.MouvementId, max.ProdId, blLines, now, ct);
+        progress.Report("Création des mouvements de stock (sorties BS)...");
+        var mvtCount = await InsertStockMovementsAsync(conn, max.MouvementId, max.ProdId, bsLines, now, ct);
 
-        progress.Report("Liaison bons de livraison ↔ factures...");
-        await LinkBlToFacturesAsync(conn, max, ct);
+        progress.Report("Liaison bons de sortie ↔ factures...");
+        await LinkBsToFacturesAsync(conn, max, ct);
 
         sw.Stop();
         var e = sw.Elapsed;
-        return $"Terminé en {e.Hours}h {e.Minutes}m {e.Seconds}s ({e.TotalSeconds:F1}s) — {ProductCount:N0} produits, {DocumentCount:N0} BL, {DocumentCount:N0} factures, {paiementCount:N0} paiements, {mvtCount:N0} mouvements stock sur {dayCount:N0} jours (~{dayCount / 365.25:F1} ans à {DocumentsPerDay}/jour).";
+        return $"Terminé en {e.Hours}h {e.Minutes}m {e.Seconds}s ({e.TotalSeconds:F1}s) — {ProductCount:N0} produits, {DocumentCount:N0} BS, {DocumentCount:N0} factures, {paiementCount:N0} paiements, {mvtCount:N0} mouvements stock sur {dayCount:N0} jours (~{dayCount / 365.25:F1} ans à {DocumentsPerDay}/jour).";
     }
 
-    private static async Task<(long ProdId, long TiersId, long FactId, long FactLigneId, long BLId, long BLLigneId, long PaiementId, long MouvementId)>
+    private static async Task<(long ProdId, long TiersId, long FactId, long FactLigneId, long BsId, long BsLigneId, long PaiementId, long MouvementId)>
         GetMaxIdsAsync(SqliteConnection conn, CancellationToken ct)
     {
         async Task<long> Max(string table)
@@ -91,8 +91,8 @@ public class PerformanceTestService
             await Max("Tiers"),
             await Max("Factures"),
             await Max("FactureLignes"),
-            await Max("BonsLivraison"),
-            await Max("BonLivraisonLignes"),
+            await Max("BonsSortie"),
+            await Max("BonSortieProduitLignes"),
             await Max("Paiements"),
             await Max("MouvementsStock")
         );
@@ -158,55 +158,55 @@ public class PerformanceTestService
         }
     }
 
-    private static async Task InsertBlHeadersAsync(SqliteConnection conn,
-        (long ProdId, long TiersId, long FactId, long FactLigneId, long BLId, long BLLigneId, long PaiementId, long MouvementId) max,
+    private static async Task InsertBsHeadersAsync(SqliteConnection conn,
+        (long ProdId, long TiersId, long FactId, long FactLigneId, long BsId, long BsLigneId, long PaiementId, long MouvementId) max,
         string now, DateTime startDate, CancellationToken ct)
     {
         const int batch = 500;
-        var startBl = max.BLId + 1;
+        var startBs = max.BsId + 1;
         var clientStart = max.TiersId + 1;
 
         for (var i = 0; i < DocumentCount; i += batch)
         {
             var sb = new System.Text.StringBuilder();
-            sb.Append("INSERT INTO BonsLivraison (Id,CreatedAt,UpdatedAt,Numero,ClientId,DevisId,BonCommandeClientId,BonSortieId,FactureId,Date,Note) VALUES ");
+            sb.Append("INSERT INTO BonsSortie (Id,CreatedAt,UpdatedAt,Numero,ClientId,Date,DateDebut,DateFinPrevue,DateRetourEffective,Statut,Caution,RemiseGlobale,Note,FactureId,ReservationId) VALUES ");
             var end = Math.Min(i + batch, DocumentCount);
             for (var j = i; j < end; j++)
             {
-                var id = startBl + j;
+                var id = startBs + j;
                 var clientId = clientStart + Rng.Next(0, ClientCount);
                 var date = DateForDocumentIndex(startDate, j);
                 var year = DateTime.Parse(date).Year;
                 if (j > i) sb.Append(',');
-                sb.Append(CultureInfo.InvariantCulture, $"({id},'{now}','{now}','BL-{year}-{j:D6}',{clientId},NULL,NULL,NULL,NULL,'{date}','')");
+                sb.Append(CultureInfo.InvariantCulture, $"({id},'{now}','{now}','BS-{year}-{j:D6}',{clientId},'{date}','{date}','{date}',NULL,0,0,0,'',NULL,NULL)");
             }
             await ExecAsync(conn, sb.ToString(), ct);
         }
     }
 
-    private static async Task<List<(long BlId, long ProdId, decimal Qty)>> InsertBlLinesAsync(SqliteConnection conn,
-        (long ProdId, long TiersId, long FactId, long FactLigneId, long BLId, long BLLigneId, long PaiementId, long MouvementId) max,
+    private static async Task<List<(long BsId, long ProdId, decimal Qty)>> InsertBsLinesAsync(SqliteConnection conn,
+        (long ProdId, long TiersId, long FactId, long FactLigneId, long BsId, long BsLigneId, long PaiementId, long MouvementId) max,
         CancellationToken ct)
     {
         const int batch = 1000;
-        var startBl = max.BLId + 1;
-        var startLigne = max.BLLigneId + 1;
+        var startBs = max.BsId + 1;
+        var startLigne = max.BsLigneId + 1;
         var prodStart = max.ProdId + 1;
         var ligneIdx = 0;
         System.Text.StringBuilder? sb = null;
-        var seeds = new List<(long BlId, long ProdId, decimal Qty)>(DocumentCount * 3);
+        var seeds = new List<(long BsId, long ProdId, decimal Qty)>(DocumentCount * 3);
 
         for (var i = 0; i < DocumentCount; i++)
         {
-            var blId = startBl + i;
-            var linesPerBl = Rng.Next(1, 6);
-            for (var li = 0; li < linesPerBl; li++)
+            var bsId = startBs + i;
+            var linesPerBs = Rng.Next(1, 6);
+            for (var li = 0; li < linesPerBs; li++)
             {
                 if (ligneIdx % batch == 0)
                 {
                     if (sb != null) await ExecAsync(conn, sb.ToString(), ct);
                     sb = new System.Text.StringBuilder();
-                    sb.Append("INSERT INTO BonLivraisonLignes (Id,CreatedAt,UpdatedAt,BLId,ProduitId,Designation,QuantiteCommandee,QuantiteLivree,PrixUnitaireHT,Remise,TauxTVA) VALUES ");
+                    sb.Append("INSERT INTO BonSortieProduitLignes (Id,CreatedAt,UpdatedAt,BonSortieId,ProduitId,Designation,Quantite,QuantiteRetournee,PrixUnitaireHT,Remise,TauxTVA,Note) VALUES ");
                 }
 
                 var id = startLigne + ligneIdx;
@@ -219,8 +219,8 @@ public class PerformanceTestService
                 var now = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
 
                 if (ligneIdx % batch > 0) sb!.Append(',');
-                sb!.Append(CultureInfo.InvariantCulture, $"({id},'{now}','{now}',{blId},{prodId},'{Escape(desig)}',{qty},{qty},{pu:F2},{remise:F2},{tva:F1})");
-                seeds.Add((blId, prodId, qty));
+                sb!.Append(CultureInfo.InvariantCulture, $"({id},'{now}','{now}',{bsId},{prodId},'{Escape(desig)}',{qty},0,{pu:F2},{remise:F2},{tva:F1},'')");
+                seeds.Add((bsId, prodId, qty));
                 ligneIdx++;
             }
         }
@@ -241,7 +241,7 @@ public class PerformanceTestService
     }
 
     private static async Task<FactureMeta[]> InsertFactureHeadersAsync(SqliteConnection conn,
-        (long ProdId, long TiersId, long FactId, long FactLigneId, long BLId, long BLLigneId, long PaiementId, long MouvementId) max,
+        (long ProdId, long TiersId, long FactId, long FactLigneId, long BsId, long BsLigneId, long PaiementId, long MouvementId) max,
         string now, DateTime startDate, CancellationToken ct)
     {
         const int batch = 500;
@@ -252,7 +252,7 @@ public class PerformanceTestService
         for (var i = 0; i < DocumentCount; i += batch)
         {
             var sb = new System.Text.StringBuilder();
-            sb.Append("INSERT INTO Factures (Id,CreatedAt,UpdatedAt,Numero,ClientId,DevisId,Date,DateEcheance,EstPayee,RemiseGlobale,TotalTtc,BonCommandeReference,Note) VALUES ");
+            sb.Append("INSERT INTO Factures (Id,CreatedAt,UpdatedAt,Numero,ClientId,Date,DateEcheance,EstPayee,RemiseGlobale,TotalTtc,BonCommandeReference,Note) VALUES ");
             var end = Math.Min(i + batch, DocumentCount);
             for (var j = i; j < end; j++)
             {
@@ -271,7 +271,7 @@ public class PerformanceTestService
                     RemiseGlobale = remiseGlobale
                 };
                 if (j > i) sb.Append(',');
-                sb.Append(CultureInfo.InvariantCulture, $"({id},'{now}','{now}','FAC-{year}-{j:D6}',{clientId},NULL,'{date:yyyy-MM-dd}','{echeance:yyyy-MM-dd}',{(estPayee ? 1 : 0)},{remiseGlobale:F2},0,'','')");
+                sb.Append(CultureInfo.InvariantCulture, $"({id},'{now}','{now}','FAC-{year}-{j:D6}',{clientId},'{date:yyyy-MM-dd}','{echeance:yyyy-MM-dd}',{(estPayee ? 1 : 0)},{remiseGlobale:F2},0,'','')");
             }
             await ExecAsync(conn, sb.ToString(), ct);
         }
@@ -280,12 +280,12 @@ public class PerformanceTestService
     }
 
     private static async Task InsertFactureLinesAsync(SqliteConnection conn,
-        (long ProdId, long TiersId, long FactId, long FactLigneId, long BLId, long BLLigneId, long PaiementId, long MouvementId) max,
+        (long ProdId, long TiersId, long FactId, long FactLigneId, long BsId, long BsLigneId, long PaiementId, long MouvementId) max,
         FactureMeta[] factureMeta, CancellationToken ct)
     {
         const int batch = 1000;
         var startFact = max.FactId + 1;
-        var startBl = max.BLId + 1;
+        var startBs = max.BsId + 1;
         var startLigne = max.FactLigneId + 1;
         var prodStart = max.ProdId + 1;
         var ligneIdx = 0;
@@ -294,7 +294,7 @@ public class PerformanceTestService
         for (var i = 0; i < DocumentCount; i++)
         {
             var factId = startFact + i;
-            var blId = startBl + i;
+            var bsId = startBs + i;
             var meta = factureMeta[i];
             var linesPerFact = Rng.Next(1, 6);
             for (var li = 0; li < linesPerFact; li++)
@@ -303,7 +303,7 @@ public class PerformanceTestService
                 {
                     if (sb != null) await ExecAsync(conn, sb.ToString(), ct);
                     sb = new System.Text.StringBuilder();
-                    sb.Append("INSERT INTO FactureLignes (Id,CreatedAt,UpdatedAt,FactureId,BonLivraisonId,ProduitId,Designation,Quantite,PrixUnitaireHT,Remise,TauxTVA,Conditionnement) VALUES ");
+                    sb.Append("INSERT INTO FactureLignes (Id,CreatedAt,UpdatedAt,FactureId,BonSortieId,ProduitId,Designation,Quantite,PrixUnitaireHT,Remise,TauxTVA,Conditionnement) VALUES ");
                 }
 
                 var id = startLigne + ligneIdx;
@@ -319,7 +319,7 @@ public class PerformanceTestService
                 meta.TotalTva += lht * (tva / 100m);
 
                 if (ligneIdx % batch > 0) sb!.Append(',');
-                sb!.Append(CultureInfo.InvariantCulture, $"({id},'{now}','{now}',{factId},{blId},{prodId},'{Escape(desig)}',{qty},{pu:F2},{remise:F2},{tva:F1},'U')");
+                sb!.Append(CultureInfo.InvariantCulture, $"({id},'{now}','{now}',{factId},{bsId},{prodId},'{Escape(desig)}',{qty},{pu:F2},{remise:F2},{tva:F1},'U')");
                 ligneIdx++;
             }
         }
@@ -406,7 +406,7 @@ public class PerformanceTestService
         SqliteConnection conn,
         long startMouvementId,
         long prodStartId,
-        List<(long BlId, long ProdId, decimal Qty)> blLines,
+        List<(long BsId, long ProdId, decimal Qty)> bsLines,
         string now,
         CancellationToken ct)
     {
@@ -420,10 +420,10 @@ public class PerformanceTestService
         var count = 0;
         System.Text.StringBuilder? sb = null;
 
-        foreach (var blGroup in blLines.GroupBy(l => l.BlId).OrderBy(g => g.Key))
+        foreach (var bsGroup in bsLines.GroupBy(l => l.BsId).OrderBy(g => g.Key))
         {
-            var blId = blGroup.Key;
-            foreach (var prodGroup in blGroup.GroupBy(l => l.ProdId))
+            var bsId = bsGroup.Key;
+            foreach (var prodGroup in bsGroup.GroupBy(l => l.ProdId))
             {
                 var prodId = prodGroup.Key;
                 var qty = prodGroup.Sum(l => l.Qty);
@@ -441,8 +441,8 @@ public class PerformanceTestService
                 }
 
                 mouvementId++;
-                var note = $"BL-{blId}";
-                sb!.Append(CultureInfo.InvariantCulture, $"({mouvementId},'{now}','{now}',{prodId},{sortieType},{stockAvant:F2},{qty:F2},'{BlOrigineType}',{blId},'{Escape(note)}')");
+                var note = $"BS-{bsId}";
+                sb!.Append(CultureInfo.InvariantCulture, $"({mouvementId},'{now}','{now}',{prodId},{sortieType},{stockAvant:F2},{qty:F2},'{BsOrigineType}',{bsId},'{Escape(note)}')");
                 stockByProd[prodId] = stockAvant - qty;
                 count++;
             }
@@ -468,12 +468,12 @@ public class PerformanceTestService
         return count;
     }
 
-    private static async Task LinkBlToFacturesAsync(SqliteConnection conn,
-        (long ProdId, long TiersId, long FactId, long FactLigneId, long BLId, long BLLigneId, long PaiementId, long MouvementId) max,
+    private static async Task LinkBsToFacturesAsync(SqliteConnection conn,
+        (long ProdId, long TiersId, long FactId, long FactLigneId, long BsId, long BsLigneId, long PaiementId, long MouvementId) max,
         CancellationToken ct)
     {
         const int batch = 500;
-        var startBl = max.BLId + 1;
+        var startBs = max.BsId + 1;
         var startFact = max.FactId + 1;
 
         for (var i = 0; i < DocumentCount; i += batch)
@@ -482,10 +482,10 @@ public class PerformanceTestService
             var sb = new System.Text.StringBuilder();
             for (var j = i; j < end; j++)
             {
-                var blId = startBl + j;
+                var bsId = startBs + j;
                 var factId = startFact + j;
                 if (j > i) sb.Append(';');
-                sb.Append(CultureInfo.InvariantCulture, $"UPDATE BonsLivraison SET FactureId={factId} WHERE Id={blId}");
+                sb.Append(CultureInfo.InvariantCulture, $"UPDATE BonsSortie SET FactureId={factId} WHERE Id={bsId}");
             }
             await ExecAsync(conn, sb.ToString(), ct);
         }

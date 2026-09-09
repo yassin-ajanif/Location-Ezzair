@@ -78,27 +78,27 @@
                               SelectedDateFormat="Custom" CustomDateFormatString="dd/MM/yyyy" Watermark="jj/mm/aaaa"/>
         </StackPanel>
       </StackPanel>
-      <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-        <TextBlock Text="{Binding LblLinkedBls}" Opacity="0.7" VerticalAlignment="Center"/>
-        <Button Content="{Binding BtnAddBl}" Command="{Binding ShowBlPickerCommand}" IsEnabled="{Binding CanEditDraft}"/>
-        <ItemsControl ItemsSource="{Binding LinkedBls}" VerticalAlignment="Center">
+      <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"
+                  IsVisible="{Binding LinkedBonSorties.Count}">
+        <TextBlock Text="{Binding LblLinkedBonSorties}" Opacity="0.7" VerticalAlignment="Center"/>
+        <ItemsControl ItemsSource="{Binding LinkedBonSorties}" VerticalAlignment="Center">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
               <StackPanel Orientation="Horizontal" Spacing="4"/>
             </ItemsPanelTemplate>
           </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
-            <DataTemplate DataType="vm:LinkedBlRow">
+            <DataTemplate DataType="vm:LinkedBonSortieRow">
               <Border Padding="6,4"
                       Background="{DynamicResource CourseraPrimaryBrush}"
                       BorderBrush="{DynamicResource CourseraPrimaryHoverBrush}"
                       BorderThickness="1" CornerRadius="6">
                 <StackPanel Orientation="Horizontal" Spacing="4">
                   <TextBlock Text="{Binding Numero}" VerticalAlignment="Center" FontWeight="Bold" FontSize="12"
-                             Foreground="White" Cursor="Hand" Tapped="OnLinkedBlNumeroTapped"/>
+                             Foreground="White" Cursor="Hand" Tapped="OnLinkedBonSortieNumeroTapped"/>
                   <Button Content="×" FontSize="12" Padding="2,0" MinWidth="0" MinHeight="0"
-                          ToolTip.Tip="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LblLinkedBls}"
-                          Command="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).RemoveBlGroupCommand}"
+                          ToolTip.Tip="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LblLinkedBonSorties}"
+                          Command="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).RemoveBonSortieGroupCommand}"
                           CommandParameter="{Binding}"
                           Background="Transparent" Foreground="White"/>
                 </StackPanel>

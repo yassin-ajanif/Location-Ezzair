@@ -63,7 +63,7 @@ public class MouvementStock : BaseEntity
     [NotMapped]
     public bool CanOpenDocument =>
         OrigineId is > 0
-        && OrigineType is "LOC" or "BL" or "BR" or "Avoir" or "AvoirFournisseur";
+        && OrigineType is "LOC" or "BR" or "Avoir" or "AvoirFournisseur";
 
     [NotMapped]
     public string TraceDetail => DocumentRef;

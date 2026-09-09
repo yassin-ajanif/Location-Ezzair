@@ -18,11 +18,11 @@ public static class MouvementStockQueries
         var t = searchTerm.Trim().ToLowerInvariant();
 
         return query.Where(m =>
-            (m.OrigineType == StockMovementService.OrigineTypeBonLivraison
+            (m.OrigineType == StockMovementService.OrigineTypeLocation
              && m.OrigineId != null
-             && db.BonsLivraison.Any(bl =>
-                 bl.Id == m.OrigineId
-                 && db.Tiers.Any(tier => tier.Id == bl.ClientId && tier.Nom.ToLower().Contains(t))))
+             && db.BonsSortie.Any(bs =>
+                 bs.Id == m.OrigineId
+                 && db.Tiers.Any(tier => tier.Id == bs.ClientId && tier.Nom.ToLower().Contains(t))))
             || (m.OrigineType == StockMovementService.OrigineTypeAvoir
                 && m.OrigineId != null
                 && db.Avoirs.Any(a =>
