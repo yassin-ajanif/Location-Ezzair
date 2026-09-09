@@ -15,17 +15,23 @@ public partial class ReportsListViewModel : BaseViewModel
     private readonly IDialogService _dialog;
     private readonly ICurrentUserSession _session;
     private readonly ILocaleService _locale;
+    private readonly IAppSettingsService _settings;
+    private readonly IPdfPrintService _pdfPrint;
 
     public ReportsListViewModel(
         IReportService reportService,
         IDialogService dialog,
         ICurrentUserSession session,
-        ILocaleService locale)
+        ILocaleService locale,
+        IAppSettingsService settings,
+        IPdfPrintService pdfPrint)
     {
         _reportService = reportService;
         _dialog = dialog;
         _session = session;
         _locale = locale;
+        _settings = settings;
+        _pdfPrint = pdfPrint;
         _locale.CultureApplied += (_, _) => RefreshLabels();
         Pagination = new PaginationHelper(ApplyCurrentPage);
         DatePresets = new DatePresetChipsModel(_locale, (from, to) =>
@@ -57,6 +63,8 @@ public partial class ReportsListViewModel : BaseViewModel
     [ObservableProperty] private string _btnStockMovements = string.Empty;
     [ObservableProperty] private string _btnProfitCharges = string.Empty;
     [ObservableProperty] private string _btnZakat = string.Empty;
+    [ObservableProperty] private string _btnPdf = string.Empty;
+    [ObservableProperty] private string _btnPrint = string.Empty;
 
     [ObservableProperty] private int _selectedReportIndex;
     [ObservableProperty] private DateTimeOffset _dateFrom = new(DateTime.Today);
@@ -158,6 +166,8 @@ public partial class ReportsListViewModel : BaseViewModel
         BtnStockMovements = _locale.T("Reports_BtnStockMovements");
         BtnProfitCharges = _locale.T("Reports_BtnProfitCharges");
         BtnZakat = _locale.T("Reports_BtnZakat");
+        BtnPdf = _locale.T("Btn_Pdf");
+        BtnPrint = _locale.T("Btn_Print");
         EmptyMessage = _locale.T("Reports_Empty");
         LblSaleByCustomerLabelHt = _locale.T("Reports_LblTotalHt");
         LblSaleByCustomerLabelTtc = _locale.T("Reports_LblTotalTtc");
@@ -450,5 +460,178 @@ public partial class ReportsListViewModel : BaseViewModel
         target.Clear();
         foreach (var item in source.Skip(Pagination.Skip).Take(Pagination.PageSize))
             target.Add(item);
+    }
+
+    [RelayCommand]
+    private async Task ExportPdfAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            IsBusy = true;
+            var bytes = await BuildCurrentReportPdfAsync(cancellationToken);
+            if (bytes.Length == 0)
+            {
+                await _dialog.ShowInfoAsync(_locale.T("Reports_Title"), _locale.T("Reports_Empty"), cancellationToken);
+                return;
+            }
+
+            var fileName = $"rapport-{DateTime.Now:yyyyMMdd-HHmm}.pdf";
+            var ok = await _dialog.SavePickedFileBytesAsync(
+                _locale.T("Export_PdfPicker"), fileName, ["*.pdf"], bytes, cancellationToken);
+            if (ok)
+                await _dialog.ShowInfoAsync(_locale.T("Export_Pdf"), _locale.T("Export_Done"), cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Échec de l'export PDF du rapport", ex, "ReportsListViewModel.ExportPdfAsync");
+            await _dialog.ShowErrorAsync(_locale.T("Export_Pdf"), ex.Message, cancellationToken);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task PrintAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            IsBusy = true;
+            var bytes = await BuildCurrentReportPdfAsync(cancellationToken);
+            if (bytes.Length == 0)
+            {
+                await _dialog.ShowInfoAsync(_locale.T("Reports_Title"), _locale.T("Reports_Empty"), cancellationToken);
+                return;
+            }
+
+            await _pdfPrint.PrintPdfAsync(bytes, CurrentReportTitle(), cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Échec de l'impression du rapport", ex, "ReportsListViewModel.PrintAsync");
+            await _dialog.ShowErrorAsync(_locale.T("Btn_Print"), ex.Message, cancellationToken);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private string CurrentReportTitle() => SelectedReportIndex switch
+    {
+        0 => BtnProfitCharges,
+        1 => BtnSaleByProduct,
+        2 => BtnSaleByCustomer,
+        3 => BtnRefunds,
+        4 => BtnDailySales,
+        5 => BtnUnpaid,
+        6 => BtnStockMovements,
+        7 => BtnZakat,
+        _ => LblTitle
+    };
+
+    private async Task<byte[]> BuildCurrentReportPdfAsync(CancellationToken ct)
+    {
+        var cfg = await _settings.GetAsync(ct);
+        var company = string.IsNullOrWhiteSpace(cfg.SocieteNom) ? "location ezzair" : cfg.SocieteNom.Trim();
+        var period = ShowDateFilter
+            ? $"{LblDateFrom} {DateFrom:dd/MM/yyyy}  ·  {LblDateTo} {DateTo:dd/MM/yyyy}"
+            : DateTime.Today.ToString("dd/MM/yyyy");
+
+        var (columns, rows, summary) = BuildPdfTable();
+        var model = new ReportPdfModel
+        {
+            Title = CurrentReportTitle(),
+            PeriodText = period,
+            CompanyName = company,
+            Columns = columns,
+            Rows = rows,
+            Summary = summary
+        };
+        return await Task.Run(() => ReportPdfBuilder.Build(model), ct);
+    }
+
+    private (IReadOnlyList<string> Columns, IReadOnlyList<IReadOnlyList<string>> Rows, IReadOnlyList<ReportPdfSummaryLine> Summary)
+        BuildPdfTable()
+    {
+        switch (SelectedReportIndex)
+        {
+            case 0:
+                return (
+                    [ColProfitType, ColProfitRef, ColProfitDate, ColProfitHt, ColProfitAmount],
+                    _filteredProfitCharges.Select(r => (IReadOnlyList<string>)
+                        [r.TypeLabel, r.RefLibelle, r.LblDate, r.LblMontantHt, r.LblAmount]).ToList(),
+                    [
+                        new(LblProfitChargesMarginLabel, LblProfitChargesTotalMargin),
+                        new(LblProfitChargesAvoirsClientLabel, LblProfitChargesTotalAvoirsClient),
+                        new(LblProfitChargesPurchasesLabel, LblProfitChargesTotalPurchases),
+                        new(LblProfitChargesAvoirsFournisseurLabel, LblProfitChargesTotalAvoirsFournisseur),
+                        new(LblProfitChargesChargesLabel, LblProfitChargesTotalCharges),
+                        new(LblProfitChargesNetLabel, LblProfitChargesNetResult)
+                    ]);
+            case 1:
+                return (
+                    [_locale.T("Lbl_ColRef"), _locale.T("Lbl_ColDesignation"), "Catégorie",
+                        _locale.T("DocLine_ColQte"), _locale.T("Reports_LblTotalTtc"), _locale.T("Reports_LblProfit")],
+                    _allSalesByProduct.Select(r => (IReadOnlyList<string>)
+                        [r.Reference, r.Designation, r.Categorie, r.LblQty, r.LblTtc, r.LblProfit]).ToList(),
+                    []);
+            case 2:
+                return (
+                    [_locale.T("Lbl_Client"), _locale.T("Lbl_ColVille"), _locale.T("Reports_LblTotalHt"),
+                        _locale.T("Reports_LblTotalTtc"), _locale.T("Reports_LblProfit")],
+                    _allSalesByCustomer.Select(r => (IReadOnlyList<string>)
+                        [r.Client, r.Ville, r.LblHt, r.LblTtc, r.LblProfit]).ToList(),
+                    [
+                        new(LblSaleByCustomerLabelHt, LblSaleByCustomerTotalHt),
+                        new(LblSaleByCustomerLabelTtc, LblSaleByCustomerTotalTtc),
+                        new(LblSaleByCustomerLabelProfit, LblSaleByCustomerTotalProfit)
+                    ]);
+            case 3:
+                return (
+                    [_locale.T("Lbl_ColRef"), _locale.T("DevisList_ColDate"), _locale.T("Lbl_Client"),
+                        _locale.T("Reports_LblTotalTtc")],
+                    _allRefunds.Select(r => (IReadOnlyList<string>)
+                        [r.Numero, r.LblDate, r.Client, r.LblTotal]).ToList(),
+                    []);
+            case 4:
+                return (
+                    [_locale.T("DevisList_ColDate"), _locale.T("Reports_LblTotalHt"),
+                        _locale.T("Reports_LblTotalTtc"), _locale.T("Reports_LblProfit")],
+                    _allDailySales.Select(r => (IReadOnlyList<string>)
+                        [r.LblDate, r.LblHt, r.LblTtc, r.LblProfit]).ToList(),
+                    [new(LblSaleByCustomerLabelProfit, LblDailySalesTotalProfit)]);
+            case 5:
+                return (
+                    [_locale.T("Lbl_ColRef"), _locale.T("Reports_LblTotalTtc"),
+                        _locale.T("DevisList_ColDate"), "Statut"],
+                    _allUnpaidSales.Select(r => (IReadOnlyList<string>)
+                        [r.Numero, r.Reste, r.DateEcheance, r.DueStatus]).ToList(),
+                    []);
+            case 6:
+                return (
+                    [_locale.T("DevisList_ColDate"), _locale.T("Lbl_ColRef"), _locale.T("Lbl_ColDesignation"),
+                        "Type", _locale.T("DocLine_ColQte")],
+                    _allStockMovements.Select(r => (IReadOnlyList<string>)
+                        [r.LblDate, r.ProduitRef, r.ProduitDesignation, r.TypeMvt, r.LblQty]).ToList(),
+                    [
+                        new(LblStockValHtLabel, LblStockValHt),
+                        new(LblStockValTtcLabel, LblStockValTtc)
+                    ]);
+            case 7:
+                return (
+                    [ColZakatClient, ColZakatBalance],
+                    _allZakatClients.Select(r => (IReadOnlyList<string>)
+                        [r.Client, r.LblSolde]).ToList(),
+                    [
+                        new(LblZakatTotalBalancesLabel, LblZakatTotalBalances),
+                        new(LblZakatStockHtLabel, LblZakatStockHt),
+                        new(LblZakatBaseLabel, LblZakatBase),
+                        new(LblZakatAmountLabel, LblZakatAmount)
+                    ]);
+            default:
+                return ([], [], []);
+        }
     }
 }

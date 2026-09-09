@@ -302,6 +302,7 @@ public static class UiTranslations
         ["Service_NewTitle"] = ("Service (nouveau)", "خدمة (جديدة)"),
         ["Service_TitleEdit"] = ("Service — {0}", "خدمة — {0}"),
         ["Service_LblCoutHt"] = ("Coût HT", "التكلفة بدون ضريبة"),
+        ["Service_LblCoutTtc"] = ("Coût TTC", "التكلفة شامل الضريبة"),
         ["Service_WmRefExample"] = ("Ex. SRV-LIV", "مثال SRV-LIV"),
         ["Service_Saved"] = ("Enregistré.", "تم الحفظ."),
         ["Service_ConfirmDelete"] = ("Supprimer le service « {0} » ?", "حذف الخدمة « {0} »؟"),

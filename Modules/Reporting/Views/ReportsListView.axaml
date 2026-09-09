@@ -11,8 +11,14 @@
     <ScrollViewer>
       <StackPanel Spacing="12" Margin="4,8,4,32" MinWidth="520">
 
-        <!-- Title -->
-        <TextBlock Text="{Binding LblTitle}" FontWeight="SemiBold" FontSize="18"/>
+        <!-- Title + export -->
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+            <Button Content="{Binding BtnPdf}" Command="{Binding ExportPdfCommand}"/>
+            <Button Content="{Binding BtnPrint}" Command="{Binding PrintCommand}" Classes="primary"/>
+          </StackPanel>
+          <TextBlock Text="{Binding LblTitle}" FontWeight="SemiBold" FontSize="18" VerticalAlignment="Center"/>
+        </DockPanel>
 
         <!-- Report selector buttons -->
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">

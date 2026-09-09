@@ -67,7 +67,7 @@ public partial class ServicesListViewModel : BaseViewModel
         ColReference = _locale.T("Lbl_ColRef");
         ColDesignation = _locale.T("Lbl_ColDesignation");
         ColUnite = _locale.T("Lbl_Unite");
-        ColPrix = _locale.T("Lbl_PrixVenteHt");
+        ColPrix = _locale.T("Lbl_PrixVenteTtc");
         ColTva = _locale.T("Lbl_TvaPctField");
         ColActif = _locale.T("Lbl_Actif");
     }

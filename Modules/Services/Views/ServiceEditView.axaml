@@ -43,16 +43,16 @@
         <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding LblUnite}" VerticalAlignment="Center" Opacity="0.7" Margin="0,0,12,10"/>
         <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Unite}" Margin="0,0,0,10"/>
 
-        <TextBlock Grid.Row="3" Grid.Column="0" Text="{Binding LblPrixVente}" VerticalAlignment="Center" Opacity="0.7" Margin="0,0,12,10"/>
-        <NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding PrixVenteHt}" FormatString="N2" Minimum="0"
+        <TextBlock Grid.Row="3" Grid.Column="0" Text="{Binding LblCout}" VerticalAlignment="Center" Opacity="0.7" Margin="0,0,12,10"/>
+        <NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding CoutTtc}" FormatString="N2" Minimum="0"
                        ShowButtonSpinner="False" HorizontalAlignment="Left" MinWidth="160" Margin="0,0,0,10"/>
 
-        <TextBlock Grid.Row="4" Grid.Column="0" Text="{Binding LblCout}" VerticalAlignment="Center" Opacity="0.7" Margin="0,0,12,10"/>
-        <NumericUpDown Grid.Row="4" Grid.Column="1" Value="{Binding CoutHt}" FormatString="N2" Minimum="0"
+        <TextBlock Grid.Row="4" Grid.Column="0" Text="{Binding LblTva}" VerticalAlignment="Center" Opacity="0.7" Margin="0,0,12,10"/>
+        <NumericUpDown Grid.Row="4" Grid.Column="1" Value="{Binding TauxTva}" FormatString="N0" Minimum="0"
                        ShowButtonSpinner="False" HorizontalAlignment="Left" MinWidth="160" Margin="0,0,0,10"/>
 
-        <TextBlock Grid.Row="5" Grid.Column="0" Text="{Binding LblTva}" VerticalAlignment="Center" Opacity="0.7" Margin="0,0,12,10"/>
-        <NumericUpDown Grid.Row="5" Grid.Column="1" Value="{Binding TauxTva}" FormatString="N0" Minimum="0"
+        <TextBlock Grid.Row="5" Grid.Column="0" Text="{Binding LblPrixVente}" VerticalAlignment="Center" Opacity="0.7" Margin="0,0,12,10"/>
+        <NumericUpDown Grid.Row="5" Grid.Column="1" Value="{Binding PrixVenteTtc}" FormatString="N2" Minimum="0"
                        ShowButtonSpinner="False" HorizontalAlignment="Left" MinWidth="160" Margin="0,0,0,10"/>
 
         <TextBlock Grid.Row="6" Grid.Column="0" Text="{Binding ChkActif}" VerticalAlignment="Center" Opacity="0.7" Margin="0,0,12,10"/>

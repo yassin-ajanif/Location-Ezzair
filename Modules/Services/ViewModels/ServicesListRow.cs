@@ -17,6 +17,9 @@ public sealed class ServicesListRow
     public string TvaLabel { get; }
     public string ActifLabel { get; }
 
-    public static ServicesListRow Create(Service service, string devise) =>
-        new(service, $"{service.PrixVenteHT:N2} {devise}", $"{service.TauxTVA:N0}%");
+    public static ServicesListRow Create(Service service, string devise)
+    {
+        var ttc = service.PrixVenteHT * (1 + Math.Max(0, service.TauxTVA) / 100m);
+        return new(service, $"{ttc:N2} {devise}", $"{service.TauxTVA:N0}%");
+    }
 }

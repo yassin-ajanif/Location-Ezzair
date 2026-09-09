@@ -46,10 +46,14 @@ public partial class ServiceEditViewModel : BaseViewModel
     [ObservableProperty] private string _designation = string.Empty;
     [ObservableProperty] private string _unite = "U";
     [ObservableProperty] private decimal _prixVenteHt;
+    [ObservableProperty] private decimal _prixVenteTtc;
     [ObservableProperty] private decimal _coutHt;
+    [ObservableProperty] private decimal _coutTtc;
     [ObservableProperty] private decimal _tauxTva = 20;
     [ObservableProperty] private bool _actif = true;
     [ObservableProperty] private string _note = string.Empty;
+
+    private bool _syncingPrix;
 
     [ObservableProperty] private string _btnBack = string.Empty;
     [ObservableProperty] private string _btnSave = string.Empty;
@@ -96,8 +100,8 @@ public partial class ServiceEditViewModel : BaseViewModel
         LblReference = _locale.T("Lbl_ReferenceField");
         LblDesignation = _locale.T("Lbl_DesignationField");
         LblUnite = _locale.T("Lbl_Unite");
-        LblPrixVente = _locale.T("Lbl_PrixVenteHt");
-        LblCout = _locale.T("Service_LblCoutHt");
+        LblPrixVente = _locale.T("Lbl_PrixVenteTtc");
+        LblCout = _locale.T("Service_LblCoutTtc");
         LblTva = _locale.T("Lbl_TvaPctField");
         ChkActif = _locale.T("Lbl_ProductActive");
         LblPhoto = _locale.T("Lbl_ProductPhoto");
@@ -118,6 +122,51 @@ public partial class ServiceEditViewModel : BaseViewModel
 
     partial void OnDesignationChanged(string value) => UpdateTitle();
 
+    partial void OnPrixVenteTtcChanged(decimal value)
+    {
+        if (_syncingPrix || TauxTva < 0)
+            return;
+        _syncingPrix = true;
+        PrixVenteHt = TauxTva == 0 ? value : value / (1 + TauxTva / 100m);
+        _syncingPrix = false;
+    }
+
+    partial void OnCoutTtcChanged(decimal value)
+    {
+        if (_syncingPrix || TauxTva < 0)
+            return;
+        _syncingPrix = true;
+        CoutHt = TauxTva == 0 ? value : value / (1 + TauxTva / 100m);
+        _syncingPrix = false;
+    }
+
+    partial void OnTauxTvaChanged(decimal value)
+    {
+        if (_syncingPrix || value < 0)
+            return;
+        // Keep displayed TTC values; recompute HT when TVA changes.
+        _syncingPrix = true;
+        PrixVenteHt = value == 0 ? PrixVenteTtc : PrixVenteTtc / (1 + value / 100m);
+        CoutHt = value == 0 ? CoutTtc : CoutTtc / (1 + value / 100m);
+        _syncingPrix = false;
+    }
+
+    private void SetPrixFromHt(decimal ht, decimal tva)
+    {
+        _syncingPrix = true;
+        PrixVenteHt = ht;
+        PrixVenteTtc = ht * (1 + Math.Max(0, tva) / 100m);
+        _syncingPrix = false;
+    }
+
+    private void SetCoutFromHt(decimal ht, decimal tva)
+    {
+        _syncingPrix = true;
+        CoutHt = ht;
+        CoutTtc = ht * (1 + Math.Max(0, tva) / 100m);
+        _syncingPrix = false;
+    }
+
     private static string SuggestDraftReference() =>
         "S-" + Guid.NewGuid().ToString("N")[..10].ToUpperInvariant();
 
@@ -136,9 +185,11 @@ public partial class ServiceEditViewModel : BaseViewModel
             Reference = SuggestDraftReference();
             Designation = string.Empty;
             Unite = "U";
-            PrixVenteHt = 0;
-            CoutHt = 0;
+            _syncingPrix = true;
             TauxTva = 20;
+            _syncingPrix = false;
+            SetPrixFromHt(0, 20);
+            SetCoutFromHt(0, 20);
             Actif = true;
             Note = string.Empty;
             UpdateTitle();
@@ -150,9 +201,11 @@ public partial class ServiceEditViewModel : BaseViewModel
         Reference = s.Reference;
         Designation = s.Designation;
         Unite = s.Unite;
-        PrixVenteHt = s.PrixVenteHT;
-        CoutHt = s.CoutHT;
+        _syncingPrix = true;
         TauxTva = s.TauxTVA;
+        _syncingPrix = false;
+        SetPrixFromHt(s.PrixVenteHT, s.TauxTVA);
+        SetCoutFromHt(s.CoutHT, s.TauxTVA);
         Actif = s.Actif;
         Note = s.Note;
         SetFicheImagePreviewFromBytes(s.ImageData);
