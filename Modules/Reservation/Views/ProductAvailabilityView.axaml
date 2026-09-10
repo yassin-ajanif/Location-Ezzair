@@ -238,14 +238,28 @@
                           Padding="0" Margin="0"
                           Command="{Binding #AvailRoot.DataContext.OpenBookingCommand}"
                           CommandParameter="{Binding}">
-                    <Border Padding="10,8" CornerRadius="8"
-                            Background="#EFF6FF" BorderBrush="#BFDBFE" BorderThickness="1">
-                      <StackPanel Spacing="2">
-                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Foreground="#1E3A5F" FontSize="12"
-                                   TextWrapping="Wrap"/>
-                        <TextBlock Text="{Binding Detail}" Foreground="#1E3A5F" Opacity="0.8" FontSize="11"/>
-                      </StackPanel>
-                    </Border>
+                    <Panel>
+                      <!-- Bon de sortie = green -->
+                      <Border Padding="10,8" CornerRadius="8"
+                              Background="#DCFCE7" BorderBrush="#86EFAC" BorderThickness="1"
+                              IsVisible="{Binding ShowAsBonSortie}">
+                        <StackPanel Spacing="2">
+                          <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Foreground="#166534" FontSize="12"
+                                     TextWrapping="Wrap"/>
+                          <TextBlock Text="{Binding Detail}" Foreground="#166534" Opacity="0.85" FontSize="11"/>
+                        </StackPanel>
+                      </Border>
+                      <!-- Soft réservation = yellow -->
+                      <Border Padding="10,8" CornerRadius="8"
+                              Background="#FEF3C7" BorderBrush="#FCD34D" BorderThickness="1"
+                              IsVisible="{Binding ShowAsSoft}">
+                        <StackPanel Spacing="2">
+                          <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Foreground="#92400E" FontSize="12"
+                                     TextWrapping="Wrap"/>
+                          <TextBlock Text="{Binding Detail}" Foreground="#92400E" Opacity="0.85" FontSize="11"/>
+                        </StackPanel>
+                      </Border>
+                    </Panel>
                   </Button>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>

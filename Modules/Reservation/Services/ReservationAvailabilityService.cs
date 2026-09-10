@@ -194,7 +194,9 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
                 req.Demande,
                 Math.Max(0, disponible),
                 owned,
-                deja,
+                prod?.StockActuel ?? 0m,
+                dejaSoft,
+                dejaBs,
                 sources));
         }
 

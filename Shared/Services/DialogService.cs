@@ -158,11 +158,26 @@ public sealed class DialogService : IDialogService
                 TextWrapping = Avalonia.Media.TextWrapping.Wrap
             });
 
-            var metrics = new WrapPanel { Orientation = Orientation.Horizontal };
-            metrics.Children.Add(CreateLabeledChip(product.DemandeLabel, product.DemandeValue, "#FEE2E2", "#FECACA", "#991B1B"));
-            metrics.Children.Add(CreateLabeledChip(product.DisponibleLabel, product.DisponibleValue, "#DCFCE7", "#86EFAC", "#166534"));
-            metrics.Children.Add(CreateLabeledChip(product.StockLabel, product.StockValue, "#E0E7FF", "#C7D2FE", "#3730A3"));
-            metrics.Children.Add(CreateLabeledChip(product.DejaLabel, product.DejaValue, "#FEF3C7", "#FCD34D", "#92400E"));
+            var metrics = new StackPanel { Spacing = 8 };
+            var topRow = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitions("*,*,*,*,*")
+            };
+            void AddTopChip(int col, Border chip)
+            {
+                Grid.SetColumn(chip, col);
+                topRow.Children.Add(chip);
+            }
+            AddTopChip(0, CreateLabeledChip(product.StockLabel, product.StockValue, "#E0E7FF", "#C7D2FE", "#3730A3", compact: true));
+            AddTopChip(1, CreateLabeledChip(product.DispoStockLabel, product.DispoStockValue, "#DBEAFE", "#93C5FD", "#1E40AF", compact: true));
+            AddTopChip(2, CreateLabeledChip(product.DisponibleLabel, product.DisponibleValue, "#DCFCE7", "#86EFAC", "#166534", compact: true));
+            AddTopChip(3, CreateLabeledChip(product.ReserveLabel, product.ReserveValue, "#FEF3C7", "#FCD34D", "#92400E", compact: true));
+            AddTopChip(4, CreateLabeledChip(product.SortieLabel, product.SortieValue, "#FEE2E2", "#FECACA", "#991B1B", compact: true));
+            metrics.Children.Add(topRow);
+
+            var demandeRow = new WrapPanel { Orientation = Orientation.Horizontal };
+            demandeRow.Children.Add(CreateLabeledChip(product.DemandeLabel, product.DemandeValue, "#FFEDD5", "#FB923C", "#9A3412"));
+            metrics.Children.Add(demandeRow);
             cardBody.Children.Add(metrics);
 
             if (product.Conflicts.Count > 0)
@@ -253,7 +268,7 @@ public sealed class DialogService : IDialogService
             }
         };
 
-    private static Border CreateLabeledChip(string label, string value, string bg, string border, string fg)
+    private static Border CreateLabeledChip(string label, string value, string bg, string border, string fg, bool compact = false)
     {
         var stack = new StackPanel { Spacing = 2 };
         stack.Children.Add(new TextBlock
@@ -261,7 +276,8 @@ public sealed class DialogService : IDialogService
             Text = label,
             FontSize = 10,
             Opacity = 0.75,
-            Foreground = Avalonia.Media.Brush.Parse(fg)
+            Foreground = Avalonia.Media.Brush.Parse(fg),
+            TextWrapping = Avalonia.Media.TextWrapping.NoWrap
         });
         stack.Children.Add(new TextBlock
         {
@@ -277,9 +293,10 @@ public sealed class DialogService : IDialogService
             BorderBrush = Avalonia.Media.Brush.Parse(border),
             BorderThickness = new Avalonia.Thickness(1),
             CornerRadius = new Avalonia.CornerRadius(8),
-            Padding = new Avalonia.Thickness(10, 6),
-            Margin = new Avalonia.Thickness(0, 0, 8, 8),
-            MinWidth = 96,
+            Padding = compact ? new Avalonia.Thickness(6, 6) : new Avalonia.Thickness(10, 6),
+            Margin = compact ? new Avalonia.Thickness(0, 0, 6, 0) : new Avalonia.Thickness(0, 0, 8, 8),
+            MinWidth = compact ? 0 : 96,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
             Child = stack
         };
     }

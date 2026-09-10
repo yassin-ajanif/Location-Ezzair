@@ -20,8 +20,12 @@ public sealed class AvailabilityWarningProductBlock
     public required string DisponibleValue { get; init; }
     public required string StockLabel { get; init; }
     public required string StockValue { get; init; }
-    public required string DejaLabel { get; init; }
-    public required string DejaValue { get; init; }
+    public required string DispoStockLabel { get; init; }
+    public required string DispoStockValue { get; init; }
+    public required string ReserveLabel { get; init; }
+    public required string ReserveValue { get; init; }
+    public required string SortieLabel { get; init; }
+    public required string SortieValue { get; init; }
     public string? ConflictsHeader { get; init; }
     public IReadOnlyList<AvailabilityWarningConflictChip> Conflicts { get; init; } = [];
 }

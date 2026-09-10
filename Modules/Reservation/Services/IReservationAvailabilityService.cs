@@ -7,7 +7,9 @@ public sealed record ReservationAvailabilityConflict(
     decimal Demande,
     decimal Disponible,
     decimal StockTotal,
+    decimal DispoStock,
     decimal DejaReserve,
+    decimal DejaSortie,
     IReadOnlyList<ReservationAvailabilityConflictSource> Sources);
 
 public sealed record ReservationAvailabilityConflictSource(

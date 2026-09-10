@@ -834,8 +834,12 @@ public partial class ReservationEditViewModel : BaseViewModel
                 DisponibleValue = c.Disponible.ToString("N0"),
                 StockLabel = _locale.T("Loc_AvailWarnStock"),
                 StockValue = c.StockTotal.ToString("N0"),
-                DejaLabel = _locale.T("Loc_AvailWarnDeja"),
-                DejaValue = c.DejaReserve.ToString("N0"),
+                DispoStockLabel = _locale.T("Loc_AvailWarnDispoStock"),
+                DispoStockValue = c.DispoStock.ToString("N0"),
+                ReserveLabel = _locale.T("Loc_AvailWarnReserve"),
+                ReserveValue = c.DejaReserve.ToString("N0"),
+                SortieLabel = _locale.T("Loc_AvailWarnSortie"),
+                SortieValue = c.DejaSortie.ToString("N0"),
                 ConflictsHeader = c.Sources.Count > 0 ? _locale.T("Loc_AvailWarnConflicts") : null,
                 Conflicts = c.Sources.Take(8).Select(s => new AvailabilityWarningConflictChip
                 {
