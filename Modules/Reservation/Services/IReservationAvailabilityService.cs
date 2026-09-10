@@ -41,9 +41,10 @@ public sealed record ProductAvailabilityDay(
     decimal Available,
     decimal StockTotal,
     ProductAvailabilityDayLevel Level,
-    /// <summary>Qty still out past planned end — display only, does not change dispo/sortie.</summary>
-    decimal RetardQty = 0,
-    /// <summary>Physical warehouse stock (StockActuel) — display only.</summary>
+    /// <summary>
+    /// Warehouse stock as of this calendar day: StockActuel plus open BS qty not yet started (DateDebut &gt; day).
+    /// Soft reservations do not affect this.
+    /// </summary>
     decimal DispoStock = 0);
 
 public sealed record ProductAvailabilityBooking(

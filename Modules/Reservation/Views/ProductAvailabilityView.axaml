@@ -145,12 +145,6 @@
                                                Foreground="#991B1B"/>
                                   </Border>
                                   <Border Padding="5,2" CornerRadius="4" HorizontalAlignment="Left"
-                                          Background="#DC2626" BorderBrush="#B91C1C" BorderThickness="1"
-                                          IsVisible="{Binding ShowRetard}">
-                                    <TextBlock Text="{Binding RetardLine}" FontSize="10" FontWeight="Bold"
-                                               Foreground="White"/>
-                                  </Border>
-                                  <Border Padding="5,2" CornerRadius="4" HorizontalAlignment="Left"
                                           Background="#FFEDD5" BorderBrush="#FB923C" BorderThickness="1">
                                     <TextBlock Text="{Binding ReserveLine}" FontSize="10" FontWeight="Bold"
                                                Foreground="#9A3412"/>

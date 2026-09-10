@@ -310,8 +310,6 @@ public partial class AvailabilityDayCell : ObservableObject
     public string DispoStockLine { get; }
     public string SortieLine { get; }
     public string ReserveLine { get; }
-    public string RetardLine { get; }
-    public bool ShowRetard { get; }
     public bool ShowSortie { get; }
     public IBrush Background { get; }
     public IBrush BorderBrush { get; }
@@ -337,8 +335,6 @@ public partial class AvailabilityDayCell : ObservableObject
         string dispoStockLine,
         string sortieLine,
         string reserveLine,
-        string retardLine,
-        bool showRetard,
         bool showSortie,
         IBrush background,
         IBrush borderBrush,
@@ -353,8 +349,6 @@ public partial class AvailabilityDayCell : ObservableObject
         DispoStockLine = dispoStockLine;
         SortieLine = sortieLine;
         ReserveLine = reserveLine;
-        RetardLine = retardLine;
-        ShowRetard = showRetard;
         ShowSortie = showSortie;
         Background = background;
         BorderBrush = borderBrush;
@@ -395,7 +389,6 @@ public partial class AvailabilityDayCell : ObservableObject
         else if (isToday && day.IsCurrentMonth)
             border = TodayBorder;
 
-        var showRetard = day.RetardQty > 0;
         return new AvailabilityDayCell(
             day.Date,
             day.Date.Day.ToString(),
@@ -403,9 +396,7 @@ public partial class AvailabilityDayCell : ObservableObject
             $"{day.DispoStock:N0} dispo stock",
             $"{day.BonSortieBooked:N0} sortie",
             $"{day.SoftBooked:N0} réservé",
-            $"{day.RetardQty:N0} retard",
-            showRetard,
-            showSortie: !showRetard,
+            showSortie: true,
             bg,
             border,
             fg,
