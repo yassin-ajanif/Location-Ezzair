@@ -319,7 +319,7 @@ public static class UiTranslations
         ["SoftRes_ErrReadOnly"] = ("Cette réservation a déjà été transformée et ne peut plus être modifiée.", "هذا الحجز حُوّل مسبقاً ولا يمكن تعديله."),
         ["SoftRes_ToBsNeedSave"] = ("Enregistrez la réservation avant de créer un bon de sortie.", "احفظ الحجز قبل إنشاء بون الخروج."),
         ["SoftRes_BtnToBonSortie"] = ("Vers bon de sortie", "تحويل لبون الخروج"),
-        ["SoftRes_BsChip"] = ("BS {0}", "خروج {0}"),
+        ["SoftRes_BsChip"] = ("{0}", "{0}"),
         ["SoftRes_MenuDelete"] = ("Supprimer la réservation…", "حذف الحجز…"),
         ["SoftRes_ConfirmDelete"] = ("Supprimer définitivement la réservation {0} ?", "حذف الحجز {0} نهائياً؟"),
         ["SoftRes_Deleted"] = ("Réservation supprimée.", "تم حذف الحجز."),
