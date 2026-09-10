@@ -79,8 +79,8 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
                     r.ClientId,
                     r.DateDebut,
                     DateFinPrevue = r.DateFinPrevue,
-                    // Still out with no return: keep blocking after planned end (sortie until returned).
-                    DateFinOccupancy = r.DateRetourEffective ?? DateTime.MaxValue
+                    // Only the planned period (or early return) blocks availability / dispo.
+                    DateFinOccupancy = r.DateRetourEffective ?? r.DateFinPrevue
                 })
                 .ToListAsync(cancellationToken);
 
@@ -98,9 +98,7 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
                 r.ClientId,
                 DateDebut = r.DateDebut.Date,
                 DateFin = r.DateFinOccupancy.Date,
-                DateFinAffichee = (r.DateFinOccupancy < DateTime.MaxValue
-                    ? r.DateFinOccupancy
-                    : r.DateFinPrevue).Date
+                DateFinAffichee = r.DateFinOccupancy.Date
             })
             .Where(r => PeriodsOverlap(periodStart, periodEnd, r.DateDebut, r.DateFin))
             .ToList();
@@ -264,7 +262,7 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
                 Encore = l.Quantite - l.QuantiteRetournee
             }).ToListAsync(cancellationToken);
 
-        // Open BS stay in "sortie" until returned (not only until fin prévue).
+        // Dispo: BS blocks only in planned period. Sortie chip: show while still out (to grid end).
         var openLines = openLinesRaw
             .Select(l => new
             {
@@ -272,10 +270,10 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
                 l.Numero,
                 l.ClientId,
                 l.DateDebut,
-                DateFin = l.DateRetourEffective ?? gridEnd,
+                DateFinBlock = l.DateRetourEffective ?? l.DateFinPrevue,
+                DateFinDisplay = l.DateRetourEffective ?? gridEnd,
                 DateFinAffichee = l.DateRetourEffective ?? l.DateFinPrevue,
-                l.Encore,
-                IsSoft = false
+                l.Encore
             })
             .ToList();
 
@@ -293,14 +291,12 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
                 DateDebut = r.DateDebut.Date,
                 DateFin = r.DateFinPrevue.Date,
                 DateFinAffichee = r.DateFinPrevue.Date,
-                Encore = l.Quantite,
-                IsSoft = true
+                Encore = l.Quantite
             }).ToListAsync(cancellationToken);
 
         var owned = produit.StockActuel + openLines.Sum(l => l.Encore);
 
         var today = DateTime.Today;
-        // Sidebar only: past fin prévue / soft fin, still open.
         var overdueBsLines = openLinesRaw
             .Where(l => l.DateRetourEffective is null && l.DateFinPrevue < today)
             .Select(l => new
@@ -315,12 +311,15 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
             .ToList();
         var overdueSoftLines = softLines.Where(l => l.DateFinAffichee < today).ToList();
 
-        var relevant = openLines
-            .Concat(softLines)
+        var relevantBs = openLines
+            .Where(l => PeriodsOverlap(gridStart, gridEnd, l.DateDebut, l.DateFinDisplay))
+            .ToList();
+        var relevantSoft = softLines
             .Where(l => PeriodsOverlap(gridStart, gridEnd, l.DateDebut, l.DateFin))
             .ToList();
 
-        var clientIds = relevant.Select(l => l.ClientId)
+        var clientIds = relevantBs.Select(l => l.ClientId)
+            .Concat(relevantSoft.Select(l => l.ClientId))
             .Concat(overdueBsLines.Select(l => l.ClientId))
             .Concat(overdueSoftLines.Select(l => l.ClientId))
             .Distinct()
@@ -332,18 +331,40 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
                 .ToDictionaryAsync(t => t.Id, t => t.Nom, cancellationToken);
 
         var softByDay = new Dictionary<DateTime, decimal>();
-        var bsByDay = new Dictionary<DateTime, decimal>();
-        foreach (var b in relevant)
+        var bsBlockByDay = new Dictionary<DateTime, decimal>();
+        var bsDisplayByDay = new Dictionary<DateTime, decimal>();
+
+        foreach (var b in relevantSoft)
         {
             var start = b.DateDebut;
             var end = b.DateFin;
             if (end < start) (start, end) = (end, start);
-            var target = b.IsSoft ? softByDay : bsByDay;
             for (var d = start; d <= end; d = d.AddDays(1))
             {
                 if (d < gridStart || d > gridEnd) continue;
-                target.TryGetValue(d, out var sum);
-                target[d] = sum + b.Encore;
+                softByDay.TryGetValue(d, out var sum);
+                softByDay[d] = sum + b.Encore;
+            }
+        }
+
+        foreach (var b in relevantBs)
+        {
+            var start = b.DateDebut;
+            var endBlock = b.DateFinBlock < start ? start : b.DateFinBlock;
+            var endDisplay = b.DateFinDisplay < start ? start : b.DateFinDisplay;
+
+            for (var d = start; d <= endBlock; d = d.AddDays(1))
+            {
+                if (d < gridStart || d > gridEnd) continue;
+                bsBlockByDay.TryGetValue(d, out var sum);
+                bsBlockByDay[d] = sum + b.Encore;
+            }
+
+            for (var d = start; d <= endDisplay; d = d.AddDays(1))
+            {
+                if (d < gridStart || d > gridEnd) continue;
+                bsDisplayByDay.TryGetValue(d, out var sum);
+                bsDisplayByDay[d] = sum + b.Encore;
             }
         }
 
@@ -353,8 +374,9 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
             var date = gridStart.AddDays(i);
             var inMonth = date.Month == monthStart.Month;
             softByDay.TryGetValue(date, out var softBooked);
-            bsByDay.TryGetValue(date, out var bsBooked);
-            var booked = softBooked + bsBooked;
+            bsBlockByDay.TryGetValue(date, out var bsBlock);
+            bsDisplayByDay.TryGetValue(date, out var bsDisplay);
+            var booked = softBooked + bsBlock;
             var available = Math.Max(0, owned - booked);
 
             ProductAvailabilityDayLevel level;
@@ -367,17 +389,26 @@ public sealed class ReservationAvailabilityService : IReservationAvailabilitySer
             else
                 level = ProductAvailabilityDayLevel.Full;
 
-            // Calendar-day warehouse: today's StockActuel + open BS that leave after this day.
-            // Once a BS has started it keeps reducing stock until returned.
             var dayDispoStock = Math.Max(
                 0m,
                 produit.StockActuel + openLines.Where(l => l.DateDebut > date).Sum(l => l.Encore));
 
             days.Add(new ProductAvailabilityDay(
-                date, inMonth, booked, softBooked, bsBooked, available, owned, level, dayDispoStock));
+                date, inMonth, booked, softBooked, bsDisplay, available, owned, level, dayDispoStock));
         }
 
-        var upcomingBookings = relevant
+        var upcomingBookings = relevantBs
+            .Select(l => new { l.Id, l.Numero, l.ClientId, l.DateDebut, l.DateFinAffichee, l.Encore, IsSoft = false })
+            .Concat(relevantSoft.Select(l => new
+            {
+                l.Id,
+                l.Numero,
+                l.ClientId,
+                l.DateDebut,
+                l.DateFinAffichee,
+                l.Encore,
+                IsSoft = true
+            }))
             .Where(l => l.DateFinAffichee >= today)
             .GroupBy(l => (l.IsSoft, l.Id, l.Numero))
             .Select(g =>
