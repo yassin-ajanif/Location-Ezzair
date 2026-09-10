@@ -178,6 +178,15 @@ public partial class SoftReservationListViewModel : BaseViewModel
         if (row == null) return;
         var item = row.Reservation;
 
+        await using (var dbCheck = await _dbFactory.CreateDbContextAsync(cancellationToken))
+        {
+            if (await dbCheck.BonsSortie.AsNoTracking().AnyAsync(b => b.ReservationId == item.Id, cancellationToken))
+            {
+                await _dialog.ShowErrorAsync(_locale.T("SoftRes_Title"), _locale.T("SoftRes_ErrDeleteHasBs"), cancellationToken);
+                return;
+            }
+        }
+
         if (!await _dialog.ConfirmAsync(_locale.T("SoftRes_Title"), _locale.Tf("SoftRes_ConfirmDelete", item.Numero), cancellationToken))
             return;
 

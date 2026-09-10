@@ -324,6 +324,7 @@ public static class UiTranslations
         ["SoftRes_ConfirmDelete"] = ("Supprimer définitivement la réservation {0} ?", "حذف الحجز {0} نهائياً؟"),
         ["SoftRes_Deleted"] = ("Réservation supprimée.", "تم حذف الحجز."),
         ["SoftRes_ErrAlreadyTransformed"] = ("Cette réservation a déjà un bon de sortie.", "هذا الحجز له بون خروج مسبقاً."),
+        ["SoftRes_ErrDeleteHasBs"] = ("Impossible de supprimer : un bon de sortie est lié à cette réservation. Supprimez d'abord le bon de sortie.", "لا يمكن الحذف: يوجد بون خروج مرتبط بهذا الحجز. احذف بون الخروج أولاً."),
         ["SoftRes_ErrCancelled"] = ("Une réservation annulée ne peut pas être transformée.", "لا يمكن تحويل حجز ملغى."),
         ["SoftRes_Statut_Brouillon"] = ("Brouillon", "مسودة"),
         ["SoftRes_Statut_Confirmee"] = ("Confirmée", "مؤكد"),

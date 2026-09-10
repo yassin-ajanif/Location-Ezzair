@@ -217,6 +217,7 @@ internal static class UiTranslationExtras
         ["Fact_WmBonCommandeReference"] = ("N° bon de commande", "رقم أمر الشراء"),
         ["Loc_ToFactureNeedSave"] = ("Enregistrez le bon de sortie avant de créer la facture.", "احفظ إذن الخروج قبل إنشاء الفاتورة."),
         ["Loc_FactureChip"] = ("Facture {0}", "فاتورة {0}"),
+        ["Loc_SoftResChip"] = ("Réservation {0}", "حجز {0}"),
         ["Loc_LblNote"] = ("Note", "ملاحظة"),
         ["ClientLedger_Title"] = ("État factures et règlements", "كشف الفواتير والمدفوعات"),
         ["ClientLedger_SoldeActuel"] = ("Solde actuel :", "الرصيد الحالي :"),

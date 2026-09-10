@@ -7,7 +7,7 @@ namespace GestionCommerciale.Modules.Reservation.Services;
 
 public interface ISoftReservationTransformService
 {
-    /// <summary>Creates a BonSortie from a soft Reservation, applies stock, links both sides. Returns BonSortie id.</summary>
+    /// <summary>Creates a BonSortie from a soft Reservation, applies stock, links BS.ReservationId. Returns BonSortie id.</summary>
     Task<int> TransformToBonSortieAsync(int reservationId, int? userId, CancellationToken cancellationToken = default);
 }
 
@@ -34,13 +34,13 @@ public sealed class SoftReservationTransformService : ISoftReservationTransformS
             .Include(r => r.ProduitLignes)
             .Include(r => r.ServiceLignes)
             .FirstAsync(r => r.Id == reservationId, cancellationToken);
-if (res.BonSortieId is { } existingId)
-        {
-            var exists = await db.BonsSortie.AsNoTracking().AnyAsync(b => b.Id == existingId, cancellationToken);
-            if (exists)
-                return existingId;
-            res.BonSortieId = null;
-        }
+
+        var existingId = await db.BonsSortie.AsNoTracking()
+            .Where(b => b.ReservationId == reservationId)
+            .Select(b => (int?)b.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (existingId is { } id)
+            return id;
 
         if (res.ClientId == 0 || (res.ProduitLignes.Count == 0 && res.ServiceLignes.Count == 0))
             throw new InvalidOperationException("Client and at least one line are required.");
@@ -93,9 +93,6 @@ if (res.BonSortieId is { } existingId)
         }
 
         db.BonsSortie.Add(bs);
-        await db.SaveChangesAsync(cancellationToken);
-
-        res.BonSortieId = bs.Id;
         res.Statut = StatutReservation.Transformee;
         await db.SaveChangesAsync(cancellationToken);
 

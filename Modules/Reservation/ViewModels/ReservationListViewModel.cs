@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using GestionCommerciale.Modules.Reservation.Models;
 using GestionCommerciale.Modules.Reservation.Services;
 using GestionCommerciale.Shared.Database;
 using GestionCommerciale.Shared.Helpers;
@@ -188,6 +189,13 @@ public partial class ReservationListViewModel : BaseViewModel
             await using var trx = await db.Database.BeginTransactionAsync(cancellationToken);
             await _workflow.ClearStockAsync(db, item.Id, item.Numero, null, cancellationToken);
             var entity = await db.BonsSortie.Include(b => b.ProduitLignes).Include(b => b.ServiceLignes).FirstAsync(b => b.Id == item.Id, cancellationToken);
+            if (entity.ReservationId is { } softId)
+            {
+                var soft = await db.Reservations.FirstOrDefaultAsync(r => r.Id == softId, cancellationToken);
+                if (soft is not null)
+                    soft.Statut = StatutReservation.Confirmee;
+            }
+
             db.BonsSortie.Remove(entity);
             await db.SaveChangesAsync(cancellationToken);
             await trx.CommitAsync(cancellationToken);

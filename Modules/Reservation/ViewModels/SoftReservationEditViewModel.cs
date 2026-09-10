@@ -292,20 +292,20 @@ public partial class SoftReservationEditViewModel : BaseViewModel
         BonSortieLabel = string.Empty;
     }
 
-    private async Task RefreshBonSortieLabelAsync(AppDbContext db, int? bsId, CancellationToken cancellationToken)
+    private async Task RefreshBonSortieLabelAsync(AppDbContext db, int softReservationId, CancellationToken cancellationToken)
     {
-        BonSortieId = bsId;
-        if (bsId is not { } id)
+        var bs = await db.BonsSortie.AsNoTracking()
+            .Where(b => b.ReservationId == softReservationId)
+            .Select(b => new { b.Id, b.Numero })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (bs is null)
         {
-            BonSortieLabel = string.Empty;
+            ClearBonSortieLinkUi();
             return;
         }
 
-        var num = await db.BonsSortie.AsNoTracking()
-            .Where(b => b.Id == id)
-            .Select(b => b.Numero)
-            .FirstOrDefaultAsync(cancellationToken);
-        BonSortieLabel = string.IsNullOrEmpty(num) ? string.Empty : _locale.Tf("SoftRes_BsChip", num);
+        BonSortieId = bs.Id;
+        BonSortieLabel = string.IsNullOrEmpty(bs.Numero) ? string.Empty : _locale.Tf("SoftRes_BsChip", bs.Numero);
     }
 
     private bool CanRemoveReservation() => ReservationId != null;
@@ -314,6 +314,15 @@ public partial class SoftReservationEditViewModel : BaseViewModel
     private async Task RemoveReservationAsync(CancellationToken cancellationToken)
     {
         if (ReservationId is not { } id) return;
+
+        await using (var dbCheck = await _dbFactory.CreateDbContextAsync(cancellationToken))
+        {
+            if (await dbCheck.BonsSortie.AsNoTracking().AnyAsync(b => b.ReservationId == id, cancellationToken))
+            {
+                await _dialog.ShowErrorAsync(_locale.T("SoftRes_Title"), _locale.T("SoftRes_ErrDeleteHasBs"), cancellationToken);
+                return;
+            }
+        }
 
         if (!await _dialog.ConfirmAsync(_locale.T("SoftRes_Title"), _locale.Tf("SoftRes_ConfirmDelete", Numero), cancellationToken))
             return;
@@ -522,7 +531,7 @@ public partial class SoftReservationEditViewModel : BaseViewModel
         Caution = r.Caution;
         RemiseGlobale = r.RemiseGlobale;
         Note = r.Note;
-        await RefreshBonSortieLabelAsync(db, r.BonSortieId, cancellationToken);
+        await RefreshBonSortieLabelAsync(db, r.Id, cancellationToken);
 
         var produitIds = r.ProduitLignes.Where(l => l.ProduitId is > 0).Select(l => l.ProduitId!.Value).Distinct().ToList();
         var serviceIds = r.ServiceLignes.Where(l => l.ServiceId is > 0).Select(l => l.ServiceId!.Value).Distinct().ToList();

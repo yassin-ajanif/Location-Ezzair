@@ -29,6 +29,13 @@
                     IsVisible="{Binding HasFactureLabel}" Cursor="Hand" Tapped="OnFactureChipTapped" VerticalAlignment="Center">
               <TextBlock Text="{Binding FactureLabel}" FontSize="11" FontWeight="Bold" Foreground="White"/>
             </Border>
+            <Border Padding="6,2"
+                    Background="#2563EB"
+                    BorderBrush="#1D4ED8"
+                    BorderThickness="1" CornerRadius="4"
+                    IsVisible="{Binding HasSoftReservationLabel}" Cursor="Hand" Tapped="OnSoftReservationChipTapped" VerticalAlignment="Center">
+              <TextBlock Text="{Binding SoftReservationLabel}" FontSize="11" FontWeight="Bold" Foreground="White"/>
+            </Border>
           </StackPanel>
           <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center" HorizontalAlignment="Right">
             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">

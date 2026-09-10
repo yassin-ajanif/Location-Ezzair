@@ -303,6 +303,8 @@ public partial class ReservationEditViewModel : BaseViewModel
     [ObservableProperty] private ReservationServiceLineRow? _selectedServiceLine;
     [ObservableProperty] private int? _factureId;
     [ObservableProperty] private string _factureLabel = string.Empty;
+    [ObservableProperty] private int? _softReservationId;
+    [ObservableProperty] private string _softReservationLabel = string.Empty;
     [ObservableProperty] private DateTime _newRetourDate = DateTime.Today;
     [ObservableProperty] private ReservationProduitLineRow? _newRetourProduit;
     [ObservableProperty] private decimal _newRetourQuantite = 1;
@@ -311,12 +313,15 @@ public partial class ReservationEditViewModel : BaseViewModel
     [ObservableProperty] private ReservationRetourRow? _selectedRetour;
 
     public bool HasFactureLabel => !string.IsNullOrEmpty(FactureLabel);
+    public bool HasSoftReservationLabel => !string.IsNullOrEmpty(SoftReservationLabel);
 
     partial void OnReservationIdChanged(int? value) => RemoveReservationCommand.NotifyCanExecuteChanged();
 
     partial void OnStatutChanged(StatutBonSortie value) => NotifyStatutChip();
 
     partial void OnFactureLabelChanged(string value) => OnPropertyChanged(nameof(HasFactureLabel));
+
+    partial void OnSoftReservationLabelChanged(string value) => OnPropertyChanged(nameof(HasSoftReservationLabel));
 
     private void NotifyStatutChip()
     {
@@ -330,6 +335,12 @@ public partial class ReservationEditViewModel : BaseViewModel
     {
         FactureId = null;
         FactureLabel = string.Empty;
+    }
+
+    private void ClearSoftReservationLinkUi()
+    {
+        SoftReservationId = null;
+        SoftReservationLabel = string.Empty;
     }
 
     private async Task RefreshFactureLabelAsync(AppDbContext db, int? factureId, CancellationToken cancellationToken)
@@ -346,6 +357,22 @@ public partial class ReservationEditViewModel : BaseViewModel
             .Select(f => f.Numero)
             .FirstOrDefaultAsync(cancellationToken);
         FactureLabel = string.IsNullOrEmpty(num) ? string.Empty : _locale.Tf("Loc_FactureChip", num);
+    }
+
+    private async Task RefreshSoftReservationLabelAsync(AppDbContext db, int? softReservationId, CancellationToken cancellationToken)
+    {
+        SoftReservationId = softReservationId;
+        if (softReservationId is not { } id)
+        {
+            SoftReservationLabel = string.Empty;
+            return;
+        }
+
+        var num = await db.Reservations.AsNoTracking()
+            .Where(r => r.Id == id)
+            .Select(r => r.Numero)
+            .FirstOrDefaultAsync(cancellationToken);
+        SoftReservationLabel = string.IsNullOrEmpty(num) ? string.Empty : _locale.Tf("Loc_SoftResChip", num);
     }
 
     private bool CanRemoveReservation() => ReservationId != null;
@@ -365,6 +392,13 @@ public partial class ReservationEditViewModel : BaseViewModel
             await using var trx = await db.Database.BeginTransactionAsync(cancellationToken);
             await _workflow.ClearStockAsync(db, id, Numero, _session.UserId, cancellationToken);
             var entity = await db.BonsSortie.Include(b => b.ProduitLignes).Include(b => b.ServiceLignes).FirstAsync(b => b.Id == id, cancellationToken);
+            if (entity.ReservationId is { } softId)
+            {
+                var soft = await db.Reservations.FirstOrDefaultAsync(r => r.Id == softId, cancellationToken);
+                if (soft is not null)
+                    soft.Statut = StatutReservation.Confirmee;
+            }
+
             db.BonsSortie.Remove(entity);
             await db.SaveChangesAsync(cancellationToken);
             await trx.CommitAsync(cancellationToken);
@@ -569,6 +603,7 @@ public partial class ReservationEditViewModel : BaseViewModel
             Caution = 0;
             Note = string.Empty;
             ClearFactureLinkUi();
+            ClearSoftReservationLinkUi();
             Title = _locale.T("Loc_NewTitle");
             RefreshTotals();
             RefreshDerivedStatut();
@@ -590,6 +625,7 @@ public partial class ReservationEditViewModel : BaseViewModel
         Caution = b.Caution;
         Note = b.Note;
         await RefreshFactureLabelAsync(db, b.FactureId, cancellationToken);
+        await RefreshSoftReservationLabelAsync(db, b.ReservationId, cancellationToken);
 
         var produitIds = b.ProduitLignes.Where(l => l.ProduitId is > 0).Select(l => l.ProduitId!.Value).Distinct().ToList();
         var serviceIds = b.ServiceLignes.Where(l => l.ServiceId is > 0).Select(l => l.ServiceId!.Value).Distinct().ToList();
@@ -1093,6 +1129,15 @@ public partial class ReservationEditViewModel : BaseViewModel
     {
         var vm = _sp.GetRequiredService<FactureEditViewModel>();
         vm.Load(factureId);
+        _workspace.Open(vm);
+    }
+
+    [RelayCommand]
+    private void OpenSoftReservation()
+    {
+        if (SoftReservationId is not { } softId) return;
+        var vm = _sp.GetRequiredService<SoftReservationEditViewModel>();
+        vm.Load(softId);
         _workspace.Open(vm);
     }
 }

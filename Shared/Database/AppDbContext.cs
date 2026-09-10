@@ -211,11 +211,12 @@ public class AppDbContext : DbContext
             e.HasOne(l => l.Facture).WithMany()
                 .HasForeignKey(l => l.FactureId)
                 .OnDelete(DeleteBehavior.SetNull);
+            // Soft réservation → BS is 1:1 owned here. Restrict prevents deleting a linked soft RES.
             e.HasOne(l => l.Reservation).WithMany()
                 .HasForeignKey(l => l.ReservationId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(l => l.FactureId);
-            e.HasIndex(l => l.ReservationId);
+            e.HasIndex(l => l.ReservationId).IsUnique();
             e.HasIndex(l => l.ClientId);
             e.HasIndex(l => l.Numero);
         });
@@ -259,10 +260,6 @@ public class AppDbContext : DbContext
             e.Property(r => r.Statut).HasConversion<int>();
             e.HasMany(r => r.ProduitLignes).WithOne(x => x.Reservation).HasForeignKey(x => x.ReservationId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(r => r.ServiceLignes).WithOne(x => x.Reservation).HasForeignKey(x => x.ReservationId).OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(r => r.BonSortie).WithMany()
-                .HasForeignKey(r => r.BonSortieId)
-                .OnDelete(DeleteBehavior.SetNull);
-            e.HasIndex(r => r.BonSortieId);
             e.HasIndex(r => r.ClientId);
             e.HasIndex(r => r.Numero);
             e.HasIndex(r => r.Statut);

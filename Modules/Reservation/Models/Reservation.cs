@@ -14,9 +14,6 @@ public class Reservation : BaseEntity
     public decimal Caution { get; set; }
     public decimal RemiseGlobale { get; set; }
     public string Note { get; set; } = string.Empty;
-    /// <summary>Set after Vers bon de sortie.</summary>
-    public int? BonSortieId { get; set; }
-    public BonSortie? BonSortie { get; set; }
     public List<ReservationProduitLigne> ProduitLignes { get; set; } = [];
     public List<ReservationServiceLigne> ServiceLignes { get; set; } = [];
 }
