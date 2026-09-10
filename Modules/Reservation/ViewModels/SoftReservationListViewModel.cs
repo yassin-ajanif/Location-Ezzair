@@ -178,12 +178,6 @@ public partial class SoftReservationListViewModel : BaseViewModel
         if (row == null) return;
         var item = row.Reservation;
 
-        if (item.Statut == StatutReservation.Transformee)
-        {
-            await _dialog.ShowErrorAsync(_locale.T("SoftRes_Title"), _locale.T("SoftRes_ErrDeleteTransformed"), cancellationToken);
-            return;
-        }
-
         if (!await _dialog.ConfirmAsync(_locale.T("SoftRes_Title"), _locale.Tf("SoftRes_ConfirmDelete", item.Numero), cancellationToken))
             return;
 

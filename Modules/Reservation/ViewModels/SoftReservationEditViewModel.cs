@@ -308,7 +308,7 @@ public partial class SoftReservationEditViewModel : BaseViewModel
         BonSortieLabel = string.IsNullOrEmpty(num) ? string.Empty : _locale.Tf("SoftRes_BsChip", num);
     }
 
-    private bool CanRemoveReservation() => ReservationId != null && IsEditable;
+    private bool CanRemoveReservation() => ReservationId != null;
 
     [RelayCommand(CanExecute = nameof(CanRemoveReservation))]
     private async Task RemoveReservationAsync(CancellationToken cancellationToken)
