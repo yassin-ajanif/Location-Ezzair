@@ -11,10 +11,12 @@ $ReleaseDir = Join-Path $ProjectRoot "releases"
 
 $PackId = "Ecomati"
 $PackTitle = "AJIAL MOUNASABAT"
+$ProjectFile = "locationezzair.csproj"
+$MainExe = "locationezzair.exe"
 
 Push-Location $ProjectRoot
 try {
-    dotnet publish GestionCommerciale.csproj `
+    dotnet publish $ProjectFile `
         -c Release `
         --self-contained `
         -r win-x64 `
@@ -28,7 +30,7 @@ try {
         --packTitle $PackTitle `
         --packVersion $Version `
         --packDir $PublishDir `
-        --mainExe GestionCommerciale.exe `
+        --mainExe $MainExe `
         --icon $IconPath `
         --outputDir $ReleaseDir
 }
