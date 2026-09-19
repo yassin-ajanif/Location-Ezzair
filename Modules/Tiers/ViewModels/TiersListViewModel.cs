@@ -81,6 +81,7 @@ public partial class TiersListViewModel : BaseViewModel
     [ObservableProperty] private string _colNom = string.Empty;
     [ObservableProperty] private string _colIce = string.Empty;
     [ObservableProperty] private string _colVille = string.Empty;
+    [ObservableProperty] private string _colTelephone = string.Empty;
     [ObservableProperty] private string _colActif = string.Empty;
 
     private void RefreshListUi()
@@ -91,6 +92,7 @@ public partial class TiersListViewModel : BaseViewModel
         ColNom = _locale.T("Lbl_ColNom");
         ColIce = _locale.T("Lbl_ColIce");
         ColVille = _locale.T("Lbl_ColVille");
+        ColTelephone = _locale.T("Wm_Telephone");
         ColActif = _locale.T("Lbl_ColActif");
     }
 
@@ -173,7 +175,8 @@ public partial class TiersListViewModel : BaseViewModel
                 q = q.Where(t =>
                     EF.Functions.Like(t.Nom, $"%{f}%") ||
                     EF.Functions.Like(t.ICE, $"%{f}%") ||
-                    EF.Functions.Like(t.Ville, $"%{f}%"));
+                    EF.Functions.Like(t.Ville, $"%{f}%") ||
+                    EF.Functions.Like(t.Telephone, $"%{f}%"));
             }
 
             var total = await q.CountAsync(cancellationToken);
