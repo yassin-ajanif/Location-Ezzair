@@ -38,6 +38,7 @@ public static class ProduitDisplayQueries
                 PrixAchatHT = p.PrixAchatHT,
                 PrixVenteHT = p.PrixVenteHT,
                 PrixLocationHT = p.PrixLocationHT,
+                RentedByDay = p.RentedByDay,
                 TauxTVA = p.TauxTVA,
                 StockActuel = p.StockActuel,
                 StockMinimum = p.StockMinimum,

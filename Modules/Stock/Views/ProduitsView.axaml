@@ -88,7 +88,7 @@
               </Border>
             </StackPanel>
           </Grid>
-          <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
+          <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto">
             <StackPanel Spacing="4">
               <TextBlock Text="{Binding LblReference}" FontWeight="SemiBold" FontSize="12"/>
               <TextBox Text="{Binding FicheReference}" Watermark="{Binding WmRefExample}"
