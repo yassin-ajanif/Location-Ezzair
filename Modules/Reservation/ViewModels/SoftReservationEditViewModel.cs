@@ -93,6 +93,7 @@ public partial class SoftReservationEditViewModel : BaseViewModel
     [ObservableProperty] private string _lblDocColDesignation = string.Empty;
     [ObservableProperty] private string _lblDocColQte = string.Empty;
     [ObservableProperty] private string _lblDocColQteService = string.Empty;
+    [ObservableProperty] private string _lblDocColDays = string.Empty;
     [ObservableProperty] private string _lblDocColPuHt = string.Empty;
     [ObservableProperty] private string _lblDocColRemise = string.Empty;
     [ObservableProperty] private string _lblDocColTva = string.Empty;
@@ -184,6 +185,7 @@ public partial class SoftReservationEditViewModel : BaseViewModel
         LblDocColDesignation = _locale.T("DocLine_ColDesignation");
         LblDocColQte = _locale.T("Loc_ColQteLouee");
         LblDocColQteService = _locale.T("Loc_ColQteVendu");
+        LblDocColDays = _locale.T("DocLine_ColDays");
         LblDocColPuHt = _locale.T("DocLine_ColPuHt");
         LblDocColRemise = _locale.T("DocLine_ColRemise");
         LblDocColTva = _locale.T("DocLine_ColTva");
@@ -386,7 +388,7 @@ public partial class SoftReservationEditViewModel : BaseViewModel
             else
             {
                 var row = new SoftReservationProduitLineRow();
-                row.ApplyCatalogItem(item);
+                row.ApplyCatalogItem(item, DocumentTotalsHelper.RentalDays(DateDebut, DateFinPrevue));
                 row.Quantite = addQty;
                 ProduitLignes.Add(row);
                 SelectedProduitLine = row;
@@ -467,6 +469,18 @@ public partial class SoftReservationEditViewModel : BaseViewModel
     }
 
     partial void OnDeviseChanged(string value) => RefreshTotals();
+
+    partial void OnDateDebutChanged(DateTime value) => SyncRentalDaysFromPeriod();
+
+    partial void OnDateFinPrevueChanged(DateTime value) => SyncRentalDaysFromPeriod();
+
+    private void SyncRentalDaysFromPeriod()
+    {
+        var days = DocumentTotalsHelper.RentalDays(DateDebut, DateFinPrevue);
+        foreach (var line in ProduitLignes.Where(l => l.RentedByDay))
+            line.Days = days;
+        RefreshTotals();
+    }
     partial void OnRemiseGlobaleChanged(decimal value) => RefreshTotals();
 
     partial void OnSelectedClientChanged(TiersEntity? value)
@@ -552,6 +566,8 @@ public partial class SoftReservationEditViewModel : BaseViewModel
                 Designation = l.Designation,
                 Quantite = l.Quantite,
                 PrixUnitaireHt = l.PrixUnitaireHT,
+                RentedByDay = l.RentedByDay,
+                Days = l.RentedByDay ? Math.Max(1, l.Days ?? 1) : null,
                 Remise = l.Remise,
                 TauxTva = l.TauxTVA,
                 Note = l.Note
@@ -792,6 +808,8 @@ public partial class SoftReservationEditViewModel : BaseViewModel
         Designation = l.Designation,
         Quantite = l.Quantite,
         PrixUnitaireHT = l.PrixUnitaireHt,
+        RentedByDay = l.RentedByDay,
+        Days = l.RentedByDay ? Math.Max(1, l.Days ?? 1) : null,
         Remise = l.Remise,
         TauxTVA = l.TauxTva,
         Note = l.Note,

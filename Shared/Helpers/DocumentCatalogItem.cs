@@ -20,6 +20,7 @@ public sealed class DocumentCatalogItem
     public decimal PrixVenteHT { get; init; }
     public decimal PrixAchatHT { get; init; }
     public decimal PrixLocationHT { get; init; }
+    public bool RentedByDay { get; init; }
     public decimal TauxTVA { get; init; }
     public byte[]? ImageData { get; init; }
 
@@ -36,6 +37,7 @@ public sealed class DocumentCatalogItem
         PrixVenteHT = p.PrixVenteHT,
         PrixAchatHT = p.PrixAchatHT,
         PrixLocationHT = p.PrixLocationHT,
+        RentedByDay = p.RentedByDay,
         TauxTVA = p.TauxTVA,
         ImageData = p.ImageData
     };

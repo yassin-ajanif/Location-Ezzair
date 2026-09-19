@@ -14,6 +14,7 @@ public partial class DocumentLineGridColumnState : ObservableObject
     [ObservableProperty] private bool _showReference = true;
     [ObservableProperty] private bool _showDesignation = true;
     [ObservableProperty] private bool _showQuantite = true;
+    [ObservableProperty] private bool _showDays = true;
     [ObservableProperty] private bool _showConditionnement = true;
     [ObservableProperty] private bool _showPuHt = true;
     [ObservableProperty] private bool _showRemise = true;
@@ -26,6 +27,7 @@ public partial class DocumentLineGridColumnState : ObservableObject
     public GridLength ColRef => ShowReference ? new GridLength(1.15, GridUnitType.Star) : new GridLength(0);
     public GridLength ColDesignation => ShowDesignation ? new GridLength(2.35, GridUnitType.Star) : new GridLength(0);
     public GridLength ColQte => ShowQuantite ? new GridLength(0.85, GridUnitType.Star) : new GridLength(0);
+    public GridLength ColDays => ShowDays ? new GridLength(0.55, GridUnitType.Star) : new GridLength(0);
     public GridLength ColCond => ShowConditionnement ? new GridLength(0.75, GridUnitType.Star) : new GridLength(0);
     public GridLength ColPuHt => ShowPuHt ? new GridLength(0.95, GridUnitType.Star) : new GridLength(0);
     public GridLength ColRemise => EffectiveShowRemise ? new GridLength(0.65, GridUnitType.Star) : new GridLength(0);
@@ -36,6 +38,7 @@ public partial class DocumentLineGridColumnState : ObservableObject
     partial void OnShowReferenceChanged(bool value) => NotifyColWidths();
     partial void OnShowDesignationChanged(bool value) => NotifyColWidths();
     partial void OnShowQuantiteChanged(bool value) => NotifyColWidths();
+    partial void OnShowDaysChanged(bool value) => NotifyColWidths();
     partial void OnShowConditionnementChanged(bool value) => NotifyColWidths();
     partial void OnShowPuHtChanged(bool value) => NotifyColWidths();
     partial void OnShowRemiseChanged(bool value) => NotifyColWidths();
@@ -48,6 +51,7 @@ public partial class DocumentLineGridColumnState : ObservableObject
         OnPropertyChanged(nameof(ColRef));
         OnPropertyChanged(nameof(ColDesignation));
         OnPropertyChanged(nameof(ColQte));
+        OnPropertyChanged(nameof(ColDays));
         OnPropertyChanged(nameof(ColCond));
         OnPropertyChanged(nameof(ColPuHt));
         OnPropertyChanged(nameof(ColRemise));

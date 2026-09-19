@@ -70,6 +70,8 @@ public sealed class SoftReservationTransformService : ISoftReservationTransformS
                 Quantite = l.Quantite,
                 QuantiteRetournee = 0,
                 PrixUnitaireHT = l.PrixUnitaireHT,
+                RentedByDay = l.RentedByDay,
+                Days = l.RentedByDay ? Math.Max(1, l.Days ?? 1) : null,
                 Remise = l.Remise,
                 TauxTVA = l.TauxTVA,
                 Note = l.Note ?? string.Empty,

@@ -45,7 +45,7 @@ public sealed class TicketPdfService : ITicketPdfService
         var cfg = await _settings.GetAsync(cancellationToken);
         var totals = DocumentTotalsHelper.FactureTotals(facture.Lignes, facture.RemiseGlobale);
         var lines = facture.Lignes.Select(l =>
-            LineTtc(l.Designation, l.Quantite, l.PrixUnitaireHT, l.Remise, l.TauxTVA)).ToList();
+            LineTtc(l.Designation, l.Quantite, l.PrixUnitaireHT, l.Remise, l.TauxTVA, l.RentedByDay, l.Days)).ToList();
         return Render(cfg, "FACTURE", facture.Numero, "Client", party.Nom, lines, totals.ttc, widthMm);
     }
 
@@ -72,7 +72,7 @@ public sealed class TicketPdfService : ITicketPdfService
         var cfg = await _settings.GetAsync(cancellationToken);
         var totals = DocumentTotalsHelper.BonSortieTotals(doc.ProduitLignes, doc.ServiceLignes, doc.RemiseGlobale);
         var lines = doc.ProduitLignes
-            .Select(l => LineTtc(l.Designation, l.Quantite, l.PrixUnitaireHT, l.Remise, l.TauxTVA))
+            .Select(l => LineTtc(l.Designation, l.Quantite, l.PrixUnitaireHT, l.Remise, l.TauxTVA, l.RentedByDay, l.Days))
             .Concat(doc.ServiceLignes.Select(l =>
                 LineTtc(l.Designation, l.Quantite, l.PrixUnitaireHT, l.Remise, l.TauxTVA)))
             .ToList();
@@ -82,12 +82,21 @@ public sealed class TicketPdfService : ITicketPdfService
             extraValue: periode);
     }
 
-    private static TicketLinePdfModel LineTtc(string designation, decimal qty, decimal puHt, decimal remise, decimal tauxTva)
+    private static TicketLinePdfModel LineTtc(
+        string designation,
+        decimal qty,
+        decimal puHt,
+        decimal remise,
+        decimal tauxTva,
+        bool rentedByDay = false,
+        int? days = null)
     {
-        var montantHt = DocumentTotalsHelper.LigneHT(qty, puHt, remise);
+        var billingDays = DocumentTotalsHelper.EffectiveBillingDays(rentedByDay, days);
+        var label = rentedByDay ? $"{designation} ({billingDays} j)" : designation;
+        var montantHt = DocumentTotalsHelper.LigneHT(qty, puHt, remise, rentedByDay, days);
         return new TicketLinePdfModel
         {
-            Designation = designation,
+            Designation = label,
             Quantite = qty,
             PrixUnitaire = DocumentTotalsHelper.PrixUnitaireTtc(puHt, tauxTva),
             Montant = montantHt * (1 + tauxTva / 100m)

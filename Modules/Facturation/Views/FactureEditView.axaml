@@ -134,6 +134,7 @@
         <CheckBox Margin="0,0,12,4" IsChecked="{Binding LineGridColumns.ShowReference}" Content="{Binding LblDocColRef}"/>
         <CheckBox Margin="0,0,12,4" IsChecked="{Binding LineGridColumns.ShowDesignation}" Content="{Binding LblDocColDesignation}"/>
         <CheckBox Margin="0,0,12,4" IsChecked="{Binding LineGridColumns.ShowQuantite}" Content="{Binding LblDocColQte}"/>
+        <CheckBox Margin="0,0,12,4" IsChecked="{Binding LineGridColumns.ShowDays}" Content="{Binding LblDocColDays}"/>
         <CheckBox Margin="0,0,12,4" IsChecked="{Binding LineGridColumns.ShowConditionnement}" Content="{Binding LblDocColCond}"/>
         <CheckBox Margin="0,0,12,4" IsChecked="{Binding LineGridColumns.ShowPuHt}" Content="{Binding LblDocColPuHt}"/>
         <CheckBox Margin="0,0,12,4" IsChecked="{Binding LineGridColumns.ShowRemise}" Content="{Binding LblDocColRemise}" IsVisible="{Binding LineGridColumns.SupportsLineRemise}"/>
@@ -150,6 +151,7 @@
                 <ColumnDefinition Width="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ColRef}"/>
                 <ColumnDefinition Width="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ColDesignation}"/>
                 <ColumnDefinition Width="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ColQte}"/>
+                <ColumnDefinition Width="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ColDays}"/>
                 <ColumnDefinition Width="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ColCond}"/>
                 <ColumnDefinition Width="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ColPuHt}"/>
                 <ColumnDefinition Width="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ColRemise}"/>
@@ -160,12 +162,13 @@
               <TextBlock Grid.Column="0" Text="{Binding LblDocColRef}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0" IsVisible="{Binding LineGridColumns.ShowReference}"/>
               <TextBlock Grid.Column="1" Text="{Binding LblDocColDesignation}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0" IsVisible="{Binding LineGridColumns.ShowDesignation}"/>
               <TextBlock Grid.Column="2" Text="{Binding LblDocColQte}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0" IsVisible="{Binding LineGridColumns.ShowQuantite}"/>
-              <TextBlock Grid.Column="3" Text="{Binding LblDocColCond}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0" IsVisible="{Binding LineGridColumns.ShowConditionnement}"/>
-              <TextBlock Grid.Column="4" Text="{Binding LblDocColPuHt}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0" IsVisible="{Binding LineGridColumns.ShowPuHt}"/>
-              <TextBlock Grid.Column="5" Text="{Binding LblDocColRemise}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0" IsVisible="{Binding LineGridColumns.ShowRemise}"/>
-              <TextBlock Grid.Column="6" Text="{Binding LblDocColTva}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0" IsVisible="{Binding LineGridColumns.ShowTva}"/>
-              <TextBlock Grid.Column="7" Text="{Binding LblDocColMontantHt}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0" IsVisible="{Binding LineGridColumns.ShowMontantHt}"/>
-              <TextBlock Grid.Column="8" Text="{Binding LblDocColMontantTtc}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" IsVisible="{Binding LineGridColumns.ShowMontantTtc}"/>
+              <TextBlock Grid.Column="3" Text="{Binding LblDocColDays}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0" IsVisible="{Binding LineGridColumns.ShowDays}"/>
+              <TextBlock Grid.Column="4" Text="{Binding LblDocColCond}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0" IsVisible="{Binding LineGridColumns.ShowConditionnement}"/>
+              <TextBlock Grid.Column="5" Text="{Binding LblDocColPuHt}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0" IsVisible="{Binding LineGridColumns.ShowPuHt}"/>
+              <TextBlock Grid.Column="6" Text="{Binding LblDocColRemise}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0" IsVisible="{Binding LineGridColumns.ShowRemise}"/>
+              <TextBlock Grid.Column="7" Text="{Binding LblDocColTva}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0" IsVisible="{Binding LineGridColumns.ShowTva}"/>
+              <TextBlock Grid.Column="8" Text="{Binding LblDocColMontantHt}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0" IsVisible="{Binding LineGridColumns.ShowMontantHt}"/>
+              <TextBlock Grid.Column="9" Text="{Binding LblDocColMontantTtc}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" IsVisible="{Binding LineGridColumns.ShowMontantTtc}"/>
             </Grid>
           </Border>
           <ListBox Grid.Row="1" ItemsSource="{Binding Lignes}" SelectedItem="{Binding SelectedLine}" MinHeight="200"
@@ -179,6 +182,7 @@
                       <ColumnDefinition Width="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ColRef}"/>
                       <ColumnDefinition Width="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ColDesignation}"/>
                       <ColumnDefinition Width="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ColQte}"/>
+                      <ColumnDefinition Width="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ColDays}"/>
                       <ColumnDefinition Width="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ColCond}"/>
                       <ColumnDefinition Width="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ColPuHt}"/>
                       <ColumnDefinition Width="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ColRemise}"/>
@@ -202,17 +206,21 @@
                              IsVisible="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ShowDesignation}"/>
                     <NumericUpDown Grid.Column="2" ShowButtonSpinner="False" Value="{Binding Quantite}" FormatString="0.##" Minimum="0" Increment="1"
                                    HorizontalAlignment="Stretch" Margin="0,0,8,0" IsEnabled="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).CanEditDraft}" IsVisible="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ShowQuantite}"/>
-                    <TextBox Grid.Column="3" Text="{Binding Conditionnement}" Watermark="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).WmDocLineUnite}" Padding="6,4" Margin="0,0,8,0"
+                    <NumericUpDown Grid.Column="3" ShowButtonSpinner="False" Value="{Binding Days}" FormatString="0" Minimum="1" Increment="1"
+                                   HorizontalAlignment="Stretch" Margin="0,0,8,0"
+                                   IsEnabled="{Binding RentedByDay}"
+                                   IsVisible="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ShowDays}"/>
+                    <TextBox Grid.Column="4" Text="{Binding Conditionnement}" Watermark="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).WmDocLineUnite}" Padding="6,4" Margin="0,0,8,0"
                              IsReadOnly="{Binding !$parent[UserControl].((vm:FactureEditViewModel)DataContext).CanEditDraft}" IsVisible="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ShowConditionnement}"/>
-                    <NumericUpDown Grid.Column="4" ShowButtonSpinner="False" Value="{Binding PrixUnitaireHt}" FormatString="0.##" Minimum="0" Increment="0.01"
+                    <NumericUpDown Grid.Column="5" ShowButtonSpinner="False" Value="{Binding PrixUnitaireHt}" FormatString="0.##" Minimum="0" Increment="0.01"
                                    HorizontalAlignment="Stretch" Margin="0,0,8,0" IsEnabled="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).CanEditDraft}" IsVisible="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ShowPuHt}"/>
-                    <NumericUpDown Grid.Column="5" ShowButtonSpinner="False" Value="{Binding Remise}" FormatString="N2" Minimum="0" Maximum="100" Increment="1"
+                    <NumericUpDown Grid.Column="6" ShowButtonSpinner="False" Value="{Binding Remise}" FormatString="N2" Minimum="0" Maximum="100" Increment="1"
                                    HorizontalAlignment="Stretch" Margin="0,0,8,0" IsEnabled="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).CanEditDraft}" IsVisible="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ShowRemise}"/>
-                    <NumericUpDown Grid.Column="6" ShowButtonSpinner="False" Value="{Binding TauxTva}" FormatString="0.##" Minimum="0" Increment="1"
+                    <NumericUpDown Grid.Column="7" ShowButtonSpinner="False" Value="{Binding TauxTva}" FormatString="0.##" Minimum="0" Increment="1"
                                    HorizontalAlignment="Stretch" Margin="0,0,8,0" IsEnabled="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).CanEditDraft}" IsVisible="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ShowTva}"/>
-                    <TextBlock Grid.Column="7" Text="{Binding MontantHt, StringFormat=\{0:N2\}}" VerticalAlignment="Center"
+                    <TextBlock Grid.Column="8" Text="{Binding MontantHt, StringFormat=\{0:N2\}}" VerticalAlignment="Center"
                                HorizontalAlignment="Right" Margin="0,0,8,0" Opacity="0.9" IsVisible="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ShowMontantHt}"/>
-                    <TextBlock Grid.Column="8" Text="{Binding MontantTtc, StringFormat=\{0:N2\}}" VerticalAlignment="Center"
+                    <TextBlock Grid.Column="9" Text="{Binding MontantTtc, StringFormat=\{0:N2\}}" VerticalAlignment="Center"
                                HorizontalAlignment="Right" Opacity="0.9" IsVisible="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ShowMontantTtc}"/>
                   </Grid>
                 </Border>

@@ -144,6 +144,7 @@ public partial class FactureEditViewModel : BaseViewModel
     [ObservableProperty] private string _lblDocColRef = string.Empty;
     [ObservableProperty] private string _lblDocColDesignation = string.Empty;
     [ObservableProperty] private string _lblDocColQte = string.Empty;
+    [ObservableProperty] private string _lblDocColDays = string.Empty;
     [ObservableProperty] private string _lblDocColCond = string.Empty;
     [ObservableProperty] private string _wmDocLineUnite = string.Empty;
     [ObservableProperty] private string _lblDocColPuHt = string.Empty;
@@ -209,6 +210,7 @@ public partial class FactureEditViewModel : BaseViewModel
         LblDocColRef = _locale.T("DocLine_ColRef");
         LblDocColDesignation = _locale.T("DocLine_ColDesignation");
         LblDocColQte = _locale.T("DocLine_ColQte");
+        LblDocColDays = _locale.T("DocLine_ColDays");
         LblDocColCond = _locale.T("DocLine_ColCond");
         WmDocLineUnite = _locale.T("DocLine_WmUnite");
         LblDocColPuHt = _locale.T("DocLine_ColPuHt");
@@ -437,6 +439,8 @@ public partial class FactureEditViewModel : BaseViewModel
         {
             Quantite = l.Quantite,
             PrixUnitaireHT = l.PrixUnitaireHt,
+            RentedByDay = l.RentedByDay,
+            Days = l.Days,
             Remise = l.Remise,
             TauxTVA = includeTvaInTotals ? l.TauxTva : 0
         });
@@ -461,6 +465,8 @@ public partial class FactureEditViewModel : BaseViewModel
             {
                 Quantite = l.Quantite,
                 PrixUnitaireHT = l.PrixUnitaireHt,
+                RentedByDay = l.RentedByDay,
+                Days = l.Days,
                 Remise = l.Remise,
                 TauxTVA = l.TauxTva
             }),
@@ -562,6 +568,8 @@ public partial class FactureEditViewModel : BaseViewModel
                 Conditionnement = l.Conditionnement,
                 Quantite = l.Quantite,
                 PrixUnitaireHt = l.PrixUnitaireHT,
+                RentedByDay = l.RentedByDay,
+                Days = l.RentedByDay ? Math.Max(1, l.Days ?? 1) : null,
                 Remise = l.Remise,
                 TauxTva = l.TauxTVA
             };
@@ -666,6 +674,8 @@ public partial class FactureEditViewModel : BaseViewModel
                 Conditionnement = l.ProduitId is { } pid && unites.TryGetValue(pid, out var u) ? u : string.Empty,
                 Quantite = l.Quantite,
                 PrixUnitaireHt = l.PrixUnitaireHT,
+                RentedByDay = l.RentedByDay,
+                Days = l.RentedByDay ? Math.Max(1, l.Days ?? 1) : null,
                 Remise = l.Remise,
                 TauxTva = l.TauxTVA
             };
@@ -685,6 +695,8 @@ public partial class FactureEditViewModel : BaseViewModel
                 Conditionnement = string.Empty,
                 Quantite = l.Quantite,
                 PrixUnitaireHt = l.PrixUnitaireHT,
+                RentedByDay = false,
+                Days = null,
                 Remise = l.Remise,
                 TauxTva = l.TauxTVA
             };
@@ -772,6 +784,8 @@ public partial class FactureEditViewModel : BaseViewModel
                         Conditionnement = l.Conditionnement,
                         Quantite = l.Quantite,
                         PrixUnitaireHT = l.PrixUnitaireHt,
+                        RentedByDay = l.RentedByDay,
+                        Days = l.RentedByDay ? Math.Max(1, l.Days ?? 1) : null,
                         Remise = l.Remise,
                         TauxTVA = l.TauxTva,
                         BonSortieId = l.BonSortieId
@@ -814,6 +828,8 @@ public partial class FactureEditViewModel : BaseViewModel
                         Conditionnement = l.Conditionnement,
                         Quantite = l.Quantite,
                         PrixUnitaireHT = l.PrixUnitaireHt,
+                        RentedByDay = l.RentedByDay,
+                        Days = l.RentedByDay ? Math.Max(1, l.Days ?? 1) : null,
                         Remise = l.Remise,
                         TauxTVA = l.TauxTva,
                         BonSortieId = l.BonSortieId

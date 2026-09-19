@@ -73,6 +73,7 @@ public partial class ProduitsViewModel : BaseViewModel
     [ObservableProperty] private string _lblPhoto = string.Empty;
     [ObservableProperty] private string _btnChooseImage = string.Empty;
     [ObservableProperty] private string _btnRemovePhoto = string.Empty;
+    [ObservableProperty] private string _chkRentedByDay = string.Empty;
     [ObservableProperty] private string _chkProductActive = string.Empty;
     [ObservableProperty] private string _btnSaveSheet = string.Empty;
     [ObservableProperty] private string _btnDeleteProduct = string.Empty;
@@ -110,6 +111,7 @@ public partial class ProduitsViewModel : BaseViewModel
         LblPhoto = _locale.T("Lbl_ProductPhoto");
         BtnChooseImage = _locale.T("Btn_ChooseImageDots");
         BtnRemovePhoto = _locale.T("Btn_RemovePhoto");
+        ChkRentedByDay = _locale.T("Chk_RentedByDay");
         ChkProductActive = _locale.T("Lbl_ProductActive");
         BtnSaveSheet = _locale.T("Btn_RecordSheet");
         BtnDeleteProduct = _locale.T("Btn_DeleteProduct");
@@ -231,6 +233,7 @@ public partial class ProduitsViewModel : BaseViewModel
 
     [ObservableProperty] private decimal _ficheStockMinimum;
     [ObservableProperty] private decimal _ficheStockActuel;
+    [ObservableProperty] private bool _ficheRentedByDay;
     [ObservableProperty] private bool _ficheActif = true;
 
     [ObservableProperty] private bool _ficheHasImage;
@@ -285,6 +288,7 @@ public partial class ProduitsViewModel : BaseViewModel
         FicheTauxTva = 20;
         FicheStockMinimum = 0;
         FicheStockActuel = 0;
+        FicheRentedByDay = false;
         FicheActif = true;
     }
 
@@ -486,6 +490,7 @@ public partial class ProduitsViewModel : BaseViewModel
             FicheTauxTva = 20;
             FicheStockMinimum = 0;
             FicheStockActuel = 0;
+            FicheRentedByDay = false;
             FicheActif = true;
             return;
         }
@@ -500,6 +505,7 @@ public partial class ProduitsViewModel : BaseViewModel
         FicheTauxTva = p.TauxTVA;
         FicheStockMinimum = p.StockMinimum;
         FicheStockActuel = p.StockActuel;
+        FicheRentedByDay = p.RentedByDay;
         FicheActif = p.Actif;
     }
 
@@ -609,6 +615,7 @@ public partial class ProduitsViewModel : BaseViewModel
                     PrixAchatHT = FichePrixAchatHt,
                     PrixVenteHT = FichePrixVenteHt,
                     PrixLocationHT = FichePrixLocationHt,
+                    RentedByDay = FicheRentedByDay,
                     TauxTVA = FicheTauxTva,
                     StockActuel = 0,
                     StockMinimum = FicheStockMinimum,
@@ -666,6 +673,7 @@ public partial class ProduitsViewModel : BaseViewModel
             entityUpdate.PrixAchatHT = FichePrixAchatHt;
             entityUpdate.PrixVenteHT = FichePrixVenteHt;
             entityUpdate.PrixLocationHT = FichePrixLocationHt;
+            entityUpdate.RentedByDay = FicheRentedByDay;
             entityUpdate.TauxTVA = FicheTauxTva;
             entityUpdate.StockMinimum = FicheStockMinimum;
             entityUpdate.Actif = FicheActif;

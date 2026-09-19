@@ -30,6 +30,19 @@ public static class DocumentTotalsHelper
     public static decimal LigneHT(decimal qte, decimal puHt, decimal remisePct) =>
         qte * puHt * (1 - remisePct / 100m);
 
+    /// <summary>Inclusive calendar days between start and end (same day = 1).</summary>
+    public static int RentalDays(DateTime dateDebut, DateTime dateFin)
+    {
+        var days = (dateFin.Date - dateDebut.Date).Days + 1;
+        return days < 1 ? 1 : days;
+    }
+
+    public static int EffectiveBillingDays(bool rentedByDay, int? days) =>
+        rentedByDay ? Math.Max(1, days ?? 1) : 1;
+
+    public static decimal LigneHT(decimal qte, decimal puHt, decimal remisePct, bool rentedByDay, int? days) =>
+        qte * puHt * EffectiveBillingDays(rentedByDay, days) * (1 - remisePct / 100m);
+
     public static decimal PrixUnitaireTtc(decimal puHt, decimal tauxTvaPct) =>
         puHt * (1 + tauxTvaPct / 100m);
 
@@ -38,7 +51,7 @@ public static class DocumentTotalsHelper
         decimal ht = 0, tva = 0;
         foreach (var l in lignes)
         {
-            var lht = LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise);
+            var lht = LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise, l.RentedByDay, l.Days);
             ht += lht;
             tva += lht * (l.TauxTVA / 100m);
         }
@@ -140,7 +153,7 @@ public static class DocumentTotalsHelper
         decimal ht = 0, tva = 0;
         foreach (var l in produitLignes)
         {
-            var lht = LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise);
+            var lht = LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise, l.RentedByDay, l.Days);
             ht += lht;
             tva += lht * (l.TauxTVA / 100m);
         }
@@ -170,7 +183,7 @@ public static class DocumentTotalsHelper
         decimal ht = 0, tva = 0;
         foreach (var l in produitLignes)
         {
-            var lht = LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise);
+            var lht = LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise, l.RentedByDay, l.Days);
             ht += lht;
             tva += lht * (l.TauxTVA / 100m);
         }

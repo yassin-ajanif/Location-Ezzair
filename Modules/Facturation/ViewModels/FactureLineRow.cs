@@ -15,17 +15,21 @@ public partial class FactureLineRow : ObservableObject
     [ObservableProperty] private string _conditionnement = string.Empty;
     [ObservableProperty] private decimal _quantite = 1;
     [ObservableProperty] private decimal _prixUnitaireHt;
+    [ObservableProperty] private bool _rentedByDay;
+    [ObservableProperty] private int? _days;
     [ObservableProperty] private decimal _remise;
     [ObservableProperty] private decimal _tauxTva;
 
     public bool IsService => ServiceId is > 0;
 
-    public decimal MontantHt => DocumentTotalsHelper.LigneHT(Quantite, PrixUnitaireHt, Remise);
+    public decimal MontantHt => DocumentTotalsHelper.LigneHT(Quantite, PrixUnitaireHt, Remise, RentedByDay, Days);
 
     public decimal MontantTtc => MontantHt * (1 + TauxTva / 100m);
 
     partial void OnQuantiteChanged(decimal value) => NotifyMontants();
     partial void OnPrixUnitaireHtChanged(decimal value) => NotifyMontants();
+    partial void OnRentedByDayChanged(bool value) => NotifyMontants();
+    partial void OnDaysChanged(int? value) => NotifyMontants();
     partial void OnRemiseChanged(decimal value) => NotifyMontants();
     partial void OnTauxTvaChanged(decimal value) => NotifyMontants();
 
@@ -38,6 +42,8 @@ public partial class FactureLineRow : ObservableObject
         Conditionnement = p.Unite;
         PrixUnitaireHt = p.PrixVenteHT;
         TauxTva = p.TauxTVA;
+        RentedByDay = false;
+        Days = null;
         NotifyMontants();
     }
 
@@ -50,6 +56,8 @@ public partial class FactureLineRow : ObservableObject
         Conditionnement = s.Unite;
         PrixUnitaireHt = s.PrixVenteHT;
         TauxTva = s.TauxTVA;
+        RentedByDay = false;
+        Days = null;
         NotifyMontants();
     }
 
@@ -59,11 +67,16 @@ public partial class FactureLineRow : ObservableObject
         {
             ServiceId = item.Id;
             ProduitId = null;
+            RentedByDay = false;
+            Days = null;
         }
         else
         {
             ProduitId = item.Id;
             ServiceId = null;
+            // Direct sale on facture stays flat; day billing comes from bon de sortie.
+            RentedByDay = false;
+            Days = null;
         }
 
         Reference = item.Reference;

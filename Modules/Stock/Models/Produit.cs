@@ -11,8 +11,10 @@ public class Produit : BaseEntity
     public string Unite { get; set; } = "U";
     public decimal PrixAchatHT { get; set; }
     public decimal PrixVenteHT { get; set; }
-    /// <summary>Unit rental price (HT) used on Location documents.</summary>
+    /// <summary>Unit rental price (HT) used on Location documents. Per day when <see cref="RentedByDay"/> is true.</summary>
     public decimal PrixLocationHT { get; set; }
+    /// <summary>When true, location lines bill <see cref="PrixLocationHT"/> × quantity × days.</summary>
+    public bool RentedByDay { get; set; }
     public decimal TauxTVA { get; set; }
     public decimal StockActuel { get; set; }
     public decimal StockMinimum { get; set; }

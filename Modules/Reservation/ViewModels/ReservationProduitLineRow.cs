@@ -20,6 +20,8 @@ public partial class ReservationProduitLineRow : ObservableObject
     [ObservableProperty] private decimal _quantite;
     [ObservableProperty] private decimal _quantiteRetournee;
     [ObservableProperty] private decimal _prixUnitaireHt;
+    [ObservableProperty] private bool _rentedByDay;
+    [ObservableProperty] private int? _days;
     [ObservableProperty] private decimal _remise;
     [ObservableProperty] private decimal _tauxTva;
     [ObservableProperty] private string _note = string.Empty;
@@ -37,7 +39,7 @@ public partial class ReservationProduitLineRow : ObservableObject
         }
     }
 
-    public decimal MontantHt => DocumentTotalsHelper.LigneHT(Quantite, PrixUnitaireHt, Remise);
+    public decimal MontantHt => DocumentTotalsHelper.LigneHT(Quantite, PrixUnitaireHt, Remise, RentedByDay, Days);
 
     public decimal MontantTtc => MontantHt * (1 + TauxTva / 100m);
 
@@ -54,29 +56,39 @@ public partial class ReservationProduitLineRow : ObservableObject
     partial void OnQuantiteChanged(decimal value) => NotifyMontants();
     partial void OnQuantiteRetourneeChanged(decimal value) => NotifyMontants();
     partial void OnPrixUnitaireHtChanged(decimal value) => NotifyMontants();
+    partial void OnRentedByDayChanged(bool value) => NotifyMontants();
+    partial void OnDaysChanged(int? value) => NotifyMontants();
     partial void OnRemiseChanged(decimal value) => NotifyMontants();
     partial void OnTauxTvaChanged(decimal value) => NotifyMontants();
     partial void OnReferenceChanged(string value) => OnPropertyChanged(nameof(RetourOptionLabel));
     partial void OnDesignationChanged(string value) => OnPropertyChanged(nameof(RetourOptionLabel));
 
-    public void ApplyCatalogProduct(Produit p)
+    public void ApplyCatalogProduct(Produit p, int defaultDays)
     {
         ProduitId = p.Id;
         Reference = p.Reference;
         Designation = p.Designation;
         PrixUnitaireHt = p.PrixLocationHT > 0 ? p.PrixLocationHT : p.PrixVenteHT;
         TauxTva = p.TauxTVA;
+        ApplyRentalBilling(p.RentedByDay, defaultDays);
         NotifyMontants();
     }
 
-    public void ApplyCatalogItem(DocumentCatalogItem item)
+    public void ApplyCatalogItem(DocumentCatalogItem item, int defaultDays)
     {
         ProduitId = item.Id;
         PrixUnitaireHt = item.PrixLocationHT > 0 ? item.PrixLocationHT : item.PrixVenteHT;
         Reference = item.Reference;
         Designation = item.Designation;
         TauxTva = item.TauxTVA;
+        ApplyRentalBilling(item.RentedByDay, defaultDays);
         NotifyMontants();
+    }
+
+    public void ApplyRentalBilling(bool rentedByDay, int defaultDays)
+    {
+        RentedByDay = rentedByDay;
+        Days = rentedByDay ? Math.Max(1, defaultDays) : null;
     }
 
     private void NotifyMontants()

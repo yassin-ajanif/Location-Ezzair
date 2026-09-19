@@ -126,11 +126,14 @@ public sealed class PdfService : IPdfService
 
         foreach (var l in doc.ProduitLignes)
         {
-            var lht = DocumentTotalsHelper.LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise);
+            var lht = DocumentTotalsHelper.LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise, l.RentedByDay, l.Days);
             var ttc = lht * (1 + l.TauxTVA / 100m);
+            var designation = l.RentedByDay
+                ? $"{l.Designation} ({DocumentTotalsHelper.EffectiveBillingDays(true, l.Days)} j)"
+                : l.Designation;
             lineData.Add(new StandardPdfLine(
                 DocumentLineRef(meta, svcMeta, l.ProduitId, null),
-                l.Designation,
+                designation,
                 FmtQty(l.Quantite),
                 DocumentLineUnite(meta, svcMeta, l.ProduitId, null, null),
                 FmtUnitPrice(l.PrixUnitaireHT),
@@ -186,11 +189,14 @@ public sealed class PdfService : IPdfService
         var lineData = new List<StandardPdfLine>();
         foreach (var l in facture.Lignes)
         {
-            var lht = DocumentTotalsHelper.LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise);
+            var lht = DocumentTotalsHelper.LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise, l.RentedByDay, l.Days);
             var ttc = lht * (1 + l.TauxTVA / 100m);
+            var designation = l.RentedByDay
+                ? $"{l.Designation} ({DocumentTotalsHelper.EffectiveBillingDays(true, l.Days)} j)"
+                : l.Designation;
             lineData.Add(new StandardPdfLine(
                 DocumentLineRef(meta, svcMeta, l.ProduitId, l.ServiceId),
-                l.Designation,
+                designation,
                 FmtQty(l.Quantite),
                 string.IsNullOrWhiteSpace(l.Conditionnement)
                     ? DocumentLineUnite(meta, svcMeta, l.ProduitId, l.ServiceId, null)
