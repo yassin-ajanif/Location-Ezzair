@@ -29,15 +29,15 @@
               <ScaleTransform ScaleX="{Binding ZoomScale}"
                               ScaleY="{Binding ZoomScale}"/>
             </LayoutTransformControl.LayoutTransform>
-            <ItemsControl ItemsSource="{Binding PreviewPages}">
+            <ItemsControl ItemsSource="{Binding PreviewPages}"
+                          MaxWidth="{Binding PreviewMaxWidth}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate>
                   <Border Background="White"
                           Margin="0,0,0,16"
                           BoxShadow="0 4 16 0 #66000000">
                     <Image Source="{Binding}"
-                           Stretch="Uniform"
-                           MaxWidth="680"/>
+                           Stretch="Uniform"/>
                   </Border>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
@@ -73,6 +73,26 @@
                   MinWidth="36"
                   MinHeight="34"
                   ToolTip.Tip="Zoom avant"/>
+          <StackPanel Orientation="Horizontal"
+                      Spacing="8"
+                      Margin="16,0,0,0"
+                      VerticalAlignment="Center"
+                      IsVisible="{Binding ShowPaperFormatPicker}">
+            <TextBlock Text="{Binding PaperSizeLabel}"
+                       VerticalAlignment="Center"
+                       Foreground="#CCCCCC"/>
+            <ComboBox ItemsSource="{Binding PaperFormats}"
+                      SelectedItem="{Binding SelectedPaperFormat}"
+                      IsEnabled="{Binding CanChangeFormat}"
+                      MinWidth="140"
+                      MinHeight="34">
+              <ComboBox.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding Label}"/>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
         </StackPanel>
 
         <StackPanel Grid.Column="2"

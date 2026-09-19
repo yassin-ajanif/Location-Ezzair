@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using GestionCommerciale.Shared.Models.Pdf;
 using GestionCommerciale.Shared.Services;
 using PdfiumViewer;
 using DrawingImage = System.Drawing.Image;
@@ -9,11 +10,20 @@ using DrawingImageFormat = System.Drawing.Imaging.ImageFormat;
 
 namespace GestionCommerciale.Shared.ViewModels;
 
+public sealed class PaperFormatOption
+{
+    public required PrintPaperFormat Format { get; init; }
+    public required string Label { get; init; }
+}
+
 public sealed partial class PdfPrintPreviewViewModel : ObservableObject, IDisposable
 {
-    private readonly PdfDocument _document;
+    private PdfDocument _document;
     private readonly ILocaleService _locale;
     private readonly Func<CancellationToken, Task<bool>> _printWithSystemDialog;
+    private readonly Func<PrintPaperFormat, CancellationToken, Task<string>>? _rebuildForFormat;
+    private int _reloadGeneration;
+    private bool _paperFormatReady;
 
     public event Action<bool>? CloseRequested;
 
@@ -21,17 +31,35 @@ public sealed partial class PdfPrintPreviewViewModel : ObservableObject, IDispos
         string pdfPath,
         string documentTitle,
         ILocaleService locale,
+        bool enablePaperFormatPicker,
+        Func<PrintPaperFormat, CancellationToken, Task<string>>? rebuildForFormat,
         Func<CancellationToken, Task<bool>> printWithSystemDialog)
     {
         _document = PdfDocument.Load(pdfPath);
         _locale = locale;
+        _rebuildForFormat = rebuildForFormat;
         _printWithSystemDialog = printWithSystemDialog;
         DocumentTitle = documentTitle;
+        ShowPaperFormatPicker = enablePaperFormatPicker;
         RefreshLocalizedLabels();
+        if (ShowPaperFormatPicker)
+        {
+            PaperFormats =
+            [
+                new PaperFormatOption { Format = PrintPaperFormat.A4, Label = _locale.T("PrintPreview_FormatA4") },
+                new PaperFormatOption { Format = PrintPaperFormat.Ticket80mm, Label = _locale.T("PrintPreview_FormatTicket80") },
+                new PaperFormatOption { Format = PrintPaperFormat.Ticket58mm, Label = _locale.T("PrintPreview_FormatTicket58") }
+            ];
+            SelectedPaperFormat = PaperFormats.First(f => f.Format == PrintPaperFormatExtensions.Default);
+            PreviewMaxWidth = 300;
+        }
+
+        _paperFormatReady = ShowPaperFormatPicker;
         _ = LoadPreviewPagesAsync();
     }
 
     public ObservableCollection<Bitmap> PreviewPages { get; } = [];
+    public IReadOnlyList<PaperFormatOption> PaperFormats { get; private set; } = Array.Empty<PaperFormatOption>();
 
     [ObservableProperty] private string _documentTitle = string.Empty;
     [ObservableProperty] private string _titleLabel = string.Empty;
@@ -39,13 +67,36 @@ public sealed partial class PdfPrintPreviewViewModel : ObservableObject, IDispos
     [ObservableProperty] private string _btnPrint = string.Empty;
     [ObservableProperty] private string _btnZoomOut = string.Empty;
     [ObservableProperty] private string _btnZoomIn = string.Empty;
+    [ObservableProperty] private string _paperSizeLabel = string.Empty;
+    [ObservableProperty] private bool _showPaperFormatPicker;
+    [ObservableProperty] private PaperFormatOption? _selectedPaperFormat;
     [ObservableProperty] private bool _isLoadingPreview = true;
     [ObservableProperty] private bool _isPrinting;
+    [ObservableProperty] private bool _isRebuilding;
     [ObservableProperty] private double _zoomScale = 1.0;
+    [ObservableProperty] private double _previewMaxWidth = 680;
 
     public string ZoomLabel => $"{(int)Math.Round(ZoomScale * 100)} %";
+    public bool CanChangeFormat => ShowPaperFormatPicker && !IsRebuilding && !IsPrinting;
 
     partial void OnZoomScaleChanged(double value) => OnPropertyChanged(nameof(ZoomLabel));
+    partial void OnIsRebuildingChanged(bool value) => OnPropertyChanged(nameof(CanChangeFormat));
+    partial void OnIsPrintingChanged(bool value) => OnPropertyChanged(nameof(CanChangeFormat));
+
+    partial void OnSelectedPaperFormatChanged(PaperFormatOption? value)
+    {
+        if (!_paperFormatReady || value is null || _rebuildForFormat is null)
+            return;
+
+        PreviewMaxWidth = value.Format switch
+        {
+            PrintPaperFormat.Ticket58mm => 220,
+            PrintPaperFormat.Ticket80mm => 300,
+            _ => 680
+        };
+
+        _ = RebuildForFormatAsync(value.Format);
+    }
 
     private void RefreshLocalizedLabels()
     {
@@ -54,14 +105,49 @@ public sealed partial class PdfPrintPreviewViewModel : ObservableObject, IDispos
         BtnPrint = _locale.T("Btn_Print");
         BtnZoomOut = _locale.T("PrintPreview_ZoomOut");
         BtnZoomIn = _locale.T("PrintPreview_ZoomIn");
+        PaperSizeLabel = _locale.T("PrintPreview_PaperSize");
     }
 
-    private async Task LoadPreviewPagesAsync()
+    private async Task RebuildForFormatAsync(PrintPaperFormat format)
+    {
+        if (_rebuildForFormat is null)
+            return;
+
+        var generation = ++_reloadGeneration;
+        IsRebuilding = true;
+        IsLoadingPreview = true;
+        try
+        {
+            var path = await _rebuildForFormat(format, CancellationToken.None);
+            if (generation != _reloadGeneration)
+                return;
+
+            _document.Dispose();
+            _document = PdfDocument.Load(path);
+            await LoadPreviewPagesAsync(generation);
+        }
+        finally
+        {
+            if (generation == _reloadGeneration)
+                IsRebuilding = false;
+        }
+    }
+
+    private async Task LoadPreviewPagesAsync(int? expectedGeneration = null)
     {
         IsLoadingPreview = true;
         try
         {
             var pages = await Task.Run(RenderAllPages);
+            if (expectedGeneration is int g && g != _reloadGeneration)
+            {
+                foreach (var page in pages)
+                    page.Dispose();
+                return;
+            }
+
+            foreach (var old in PreviewPages)
+                old.Dispose();
             PreviewPages.Clear();
             foreach (var page in pages)
                 PreviewPages.Add(page);

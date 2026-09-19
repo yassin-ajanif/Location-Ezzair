@@ -1,3 +1,5 @@
+using GestionCommerciale.Shared.Models.Pdf;
+
 namespace GestionCommerciale.Shared.Services;
 
 public sealed class PdfPrintService : IPdfPrintService
@@ -13,6 +15,21 @@ public sealed class PdfPrintService : IPdfPrintService
 
         var path = await WriteTempPdfAsync(pdfBytes, documentTitle, cancellationToken);
         await PdfPrintPreviewHost.ShowAsync(path, documentTitle, _locale, cancellationToken);
+    }
+
+    public async Task PrintPdfAsync(
+        Func<PrintPaperFormat, CancellationToken, Task<byte[]>> buildPdf,
+        string documentTitle,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(buildPdf);
+
+        await PdfPrintPreviewHost.ShowWithFormatPickerAsync(
+            buildPdf,
+            documentTitle,
+            _locale,
+            WriteTempPdfAsync,
+            cancellationToken);
     }
 
     private static async Task<string> WriteTempPdfAsync(byte[] pdfBytes, string documentTitle, CancellationToken cancellationToken)

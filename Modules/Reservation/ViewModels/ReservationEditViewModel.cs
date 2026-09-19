@@ -12,6 +12,7 @@ using GestionCommerciale.Modules.Reservation.Models;
 using GestionCommerciale.Modules.Reservation.Services;
 using GestionCommerciale.Shared.Database;
 using GestionCommerciale.Shared.Helpers;
+using GestionCommerciale.Shared.Models.Pdf;
 using GestionCommerciale.Shared.Services;
 using GestionCommerciale.Shared.ViewModels;
 using Microsoft.EntityFrameworkCore;
@@ -31,6 +32,9 @@ public partial class ReservationEditViewModel : BaseViewModel
     private readonly ICurrentUserSession _session;
     private readonly ILocaleService _locale;
     private readonly IAppSettingsService _settings;
+    private readonly IPdfService _pdf;
+    private readonly ITicketPdfService _ticketPdf;
+    private readonly IPdfPrintService _pdfPrint;
     private readonly IReservationWorkflowService _workflow;
     private readonly IReservationAvailabilityService _availability;
     private readonly AddLineCatalogSearchCoordinator _addLineSearch;
@@ -44,6 +48,9 @@ public partial class ReservationEditViewModel : BaseViewModel
         ICurrentUserSession session,
         ILocaleService locale,
         IAppSettingsService settings,
+        IPdfService pdf,
+        ITicketPdfService ticketPdf,
+        IPdfPrintService pdfPrint,
         ICatalogSearchService catalogSearch,
         IReservationWorkflowService workflow,
         IReservationAvailabilityService availability)
@@ -56,6 +63,9 @@ public partial class ReservationEditViewModel : BaseViewModel
         _session = session;
         _locale = locale;
         _settings = settings;
+        _pdf = pdf;
+        _ticketPdf = ticketPdf;
+        _pdfPrint = pdfPrint;
         _workflow = workflow;
         _availability = availability;
         _addLineSearch = new AddLineCatalogSearchCoordinator(catalogSearch);
@@ -69,6 +79,8 @@ public partial class ReservationEditViewModel : BaseViewModel
 
     [ObservableProperty] private string _btnBack = string.Empty;
     [ObservableProperty] private string _btnSave = string.Empty;
+    [ObservableProperty] private string _btnPdf = string.Empty;
+    [ObservableProperty] private string _btnPrint = string.Empty;
     [ObservableProperty] private string _btnToFacture = string.Empty;
     [ObservableProperty] private string _menuDelete = string.Empty;
     [ObservableProperty] private string _lblClient = string.Empty;
@@ -232,6 +244,8 @@ public partial class ReservationEditViewModel : BaseViewModel
     {
         BtnBack = _locale.T("Btn_Back");
         BtnSave = _locale.T("Btn_Save");
+        BtnPdf = _locale.T("Btn_Pdf");
+        BtnPrint = _locale.T("Btn_Print");
         BtnToFacture = _locale.T("Btn_ToFacture");
         MenuDelete = _locale.T("Loc_MenuDelete");
         LblClient = _locale.T("Lbl_Client");
@@ -1077,6 +1091,83 @@ public partial class ReservationEditViewModel : BaseViewModel
         var list = _sp.GetRequiredService<ReservationListViewModel>();
         _workspace.Open(list);
         list.LoadCommand.Execute(null);
+    }
+
+    [RelayCommand]
+    private async Task ExportPdfAsync(CancellationToken cancellationToken)
+    {
+        if (ReservationId is not { }) return;
+        try
+        {
+            IsBusy = true;
+            var bytes = await BuildBonSortiePdfBytesAsync(cancellationToken);
+            if (bytes == null) return;
+            var ok = await _dialog.SavePickedFileBytesAsync(_locale.T("Export_PdfPicker"), $"{Numero}.pdf", new[] { "*.pdf" }, bytes, cancellationToken);
+            if (ok)
+                await _dialog.ShowInfoAsync(_locale.T("Export_Pdf"), _locale.T("Export_Done"), cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Échec de l'export PDF du bon de sortie", ex, "ReservationEditViewModel.ExportPdfAsync");
+            await _dialog.ShowErrorAsync(_locale.T("Export_Pdf"), ex.Message, cancellationToken);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task PrintAsync(CancellationToken cancellationToken)
+    {
+        if (ReservationId is not { }) return;
+        try
+        {
+            IsBusy = true;
+            await _pdfPrint.PrintPdfAsync(BuildBonSortiePdfForPrintAsync, Numero, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Échec de l'impression du bon de sortie", ex, "ReservationEditViewModel.PrintAsync");
+            await _dialog.ShowErrorAsync(_locale.T("Btn_Print"), ex.Message, cancellationToken);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task<byte[]> BuildBonSortiePdfForPrintAsync(PrintPaperFormat format, CancellationToken cancellationToken)
+    {
+        if (ReservationId is not { } id)
+            throw new InvalidOperationException("Document introuvable.");
+
+        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+        var doc = await db.BonsSortie
+            .Include(x => x.ProduitLignes)
+            .Include(x => x.ServiceLignes)
+            .FirstAsync(x => x.Id == id, cancellationToken);
+        var client = await db.Tiers.AsNoTracking().FirstAsync(t => t.Id == doc.ClientId, cancellationToken);
+        var party = DocumentPartyPdfInfo.FromTiers(client);
+        return format switch
+        {
+            PrintPaperFormat.A4 => await _pdf.BuildBonSortiePdfAsync(doc, party, cancellationToken),
+            PrintPaperFormat.Ticket80mm => await _ticketPdf.BuildBonSortieTicketAsync(doc, party, 80f, cancellationToken),
+            PrintPaperFormat.Ticket58mm => await _ticketPdf.BuildBonSortieTicketAsync(doc, party, 58f, cancellationToken),
+            _ => throw new ArgumentOutOfRangeException(nameof(format), format, null)
+        };
+    }
+
+    private async Task<byte[]?> BuildBonSortiePdfBytesAsync(CancellationToken cancellationToken)
+    {
+        if (ReservationId is not { } id) return null;
+        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+        var doc = await db.BonsSortie
+            .Include(x => x.ProduitLignes)
+            .Include(x => x.ServiceLignes)
+            .FirstAsync(x => x.Id == id, cancellationToken);
+        var client = await db.Tiers.AsNoTracking().FirstAsync(t => t.Id == doc.ClientId, cancellationToken);
+        return await _pdf.BuildBonSortiePdfAsync(doc, DocumentPartyPdfInfo.FromTiers(client), cancellationToken);
     }
 
     [RelayCommand]

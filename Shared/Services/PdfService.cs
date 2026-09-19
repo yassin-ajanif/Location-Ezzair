@@ -4,6 +4,7 @@ using GestionCommerciale.Modules.Facturation.Models;
 using GestionCommerciale.Modules.Facturation.Services;
 using GestionCommerciale.Modules.FactureFournisseur.Models;
 using GestionCommerciale.Modules.Reception.Models;
+using GestionCommerciale.Modules.Reservation.Models;
 using GestionCommerciale.Modules.Tiers.Models;
 using GestionCommerciale.Shared.Database;
 using GestionCommerciale.Shared.Helpers;
@@ -111,6 +112,67 @@ public sealed class PdfService : IPdfService
         };
 
         var model = BaseModel(cfg, "BON DE COMMANDE", docLines, PartyLines(party, "Fournisseur"), cols, rows, (ht, tva, ht + tva), bc.Note, vis.ShowMontantTtc);
+        return CommercialDocumentPdfRenderer.Render(model, TryLoadLogoBytes(cfg.SocieteLogoPath));
+    }
+
+    public async Task<byte[]> BuildBonSortiePdfAsync(BonSortie doc, DocumentPartyPdfInfo party, CancellationToken cancellationToken = default)
+    {
+        var cfg = await _settings.GetAsync(cancellationToken);
+        var meta = await LoadProductMetaAsync(doc.ProduitLignes.Select(l => l.ProduitId), cancellationToken);
+        var svcMeta = await LoadServiceMetaAsync(doc.ServiceLignes.Select(l => l.ServiceId), cancellationToken);
+        var totals = DocumentTotalsHelper.BonSortieTotals(doc.ProduitLignes, doc.ServiceLignes, doc.RemiseGlobale);
+        var vis = _uiPreferences.GetDocumentLineColumnVisibility("bon_sortie");
+        var lineData = new List<StandardPdfLine>();
+
+        foreach (var l in doc.ProduitLignes)
+        {
+            var lht = DocumentTotalsHelper.LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise);
+            var ttc = lht * (1 + l.TauxTVA / 100m);
+            lineData.Add(new StandardPdfLine(
+                DocumentLineRef(meta, svcMeta, l.ProduitId, null),
+                l.Designation,
+                FmtQty(l.Quantite),
+                DocumentLineUnite(meta, svcMeta, l.ProduitId, null, null),
+                FmtUnitPrice(l.PrixUnitaireHT),
+                FmtTvaPct(l.TauxTVA),
+                FmtMoney(l.Remise),
+                FmtMoney(lht),
+                FmtMoney(ttc)));
+        }
+
+        foreach (var l in doc.ServiceLignes)
+        {
+            var lht = DocumentTotalsHelper.LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise);
+            var ttc = lht * (1 + l.TauxTVA / 100m);
+            lineData.Add(new StandardPdfLine(
+                DocumentLineRef(meta, svcMeta, null, l.ServiceId),
+                l.Designation,
+                FmtQty(l.Quantite),
+                DocumentLineUnite(meta, svcMeta, null, l.ServiceId, null),
+                FmtUnitPrice(l.PrixUnitaireHT),
+                FmtTvaPct(l.TauxTVA),
+                FmtMoney(l.Remise),
+                FmtMoney(lht),
+                FmtMoney(ttc)));
+        }
+
+        var (cols, rows) = BuildStandardPdfTable(vis, supportsLineRemise: true, "Qté", lineData);
+
+        var docLines = new List<PdfKeyValueLine>
+        {
+            new("N°", doc.Numero),
+            new("Date", doc.Date.ToString("dd/MM/yyyy")),
+            new("Début", doc.DateDebut.ToString("dd/MM/yyyy")),
+            new("Fin prévue", doc.DateFinPrevue.ToString("dd/MM/yyyy"))
+        };
+        if (doc.DateRetourEffective is { } retour)
+            docLines.Add(new("Retour", retour.ToString("dd/MM/yyyy")));
+        if (doc.Caution > 0)
+            docLines.Add(new("Caution", FmtMoney(doc.Caution)));
+        if (doc.RemiseGlobale > 0)
+            docLines.Add(new("Remise globale", $"{doc.RemiseGlobale:N2} %"));
+
+        var model = BaseModel(cfg, "BON DE SORTIE", docLines, PartyLines(party, "Client"), cols, rows, totals, doc.Note, vis.ShowMontantTtc);
         return CommercialDocumentPdfRenderer.Render(model, TryLoadLogoBytes(cfg.SocieteLogoPath));
     }
 

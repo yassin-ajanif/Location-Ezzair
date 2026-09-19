@@ -30,6 +30,9 @@ public static class DocumentTotalsHelper
     public static decimal LigneHT(decimal qte, decimal puHt, decimal remisePct) =>
         qte * puHt * (1 - remisePct / 100m);
 
+    public static decimal PrixUnitaireTtc(decimal puHt, decimal tauxTvaPct) =>
+        puHt * (1 + tauxTvaPct / 100m);
+
     public static (decimal ht, decimal tva, decimal ttc) FactureTotals(IEnumerable<FactureLigne> lignes, decimal remiseGlobalePct)
     {
         decimal ht = 0, tva = 0;

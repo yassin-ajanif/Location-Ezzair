@@ -36,6 +36,7 @@ public partial class BREditViewModel : BaseViewModel
     private readonly IUiPreferencesService _uiPreferences;
     private readonly IStockMovementService _stock;
     private readonly IPdfService _pdf;
+    private readonly ITicketPdfService _ticketPdf;
     private readonly IPdfPrintService _pdfPrint;
     private readonly IAppSettingsService _settings;
     private readonly IFactureFournisseurBrLinkService _brLinkService;
@@ -54,6 +55,7 @@ public partial class BREditViewModel : BaseViewModel
         IUiPreferencesService uiPreferences,
         IStockMovementService stock,
         IPdfService pdf,
+        ITicketPdfService ticketPdf,
         IPdfPrintService pdfPrint,
         IAppSettingsService settings,
         IFactureFournisseurBrLinkService brLinkService,
@@ -70,6 +72,7 @@ public partial class BREditViewModel : BaseViewModel
         _uiPreferences = uiPreferences;
         _stock = stock;
         _pdf = pdf;
+        _ticketPdf = ticketPdf;
         _pdfPrint = pdfPrint;
         _settings = settings;
         _brLinkService = brLinkService;
@@ -661,9 +664,7 @@ public partial class BREditViewModel : BaseViewModel
         try
         {
             IsBusy = true;
-            var bytes = await BuildBrPdfBytesAsync(cancellationToken);
-            if (bytes == null) return;
-            await _pdfPrint.PrintPdfAsync(bytes, Numero, cancellationToken);
+            await _pdfPrint.PrintPdfAsync(BuildBrPdfForPrintAsync, Numero, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -674,6 +675,23 @@ public partial class BREditViewModel : BaseViewModel
         {
             IsBusy = false;
         }
+    }
+
+    private async Task<byte[]> BuildBrPdfForPrintAsync(PrintPaperFormat format, CancellationToken cancellationToken)
+    {
+        if (BrId is not { } id)
+            throw new InvalidOperationException("Document introuvable.");
+        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+        var b = await db.BonsReception.Include(x => x.Lignes).FirstAsync(x => x.Id == id, cancellationToken);
+        var fournisseur = await db.Tiers.AsNoTracking().FirstAsync(t => t.Id == b.FournisseurId, cancellationToken);
+        var party = DocumentPartyPdfInfo.FromTiers(fournisseur);
+        return format switch
+        {
+            PrintPaperFormat.A4 => await _pdf.BuildBonReceptionPdfAsync(b, party, cancellationToken),
+            PrintPaperFormat.Ticket80mm => await _ticketPdf.BuildBonReceptionTicketAsync(b, party, 80f, cancellationToken),
+            PrintPaperFormat.Ticket58mm => await _ticketPdf.BuildBonReceptionTicketAsync(b, party, 58f, cancellationToken),
+            _ => throw new ArgumentOutOfRangeException(nameof(format), format, null)
+        };
     }
 
     private async Task<byte[]?> BuildBrPdfBytesAsync(CancellationToken cancellationToken)

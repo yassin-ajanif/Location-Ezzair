@@ -60,6 +60,7 @@ public static class DependencyInjection
         services.AddSingleton<ILicenseService, LicenseService>();
         services.AddSingleton<IAppUpdateService, AppUpdateService>();
         services.AddSingleton<IPdfService, PdfService>();
+        services.AddSingleton<ITicketPdfService, TicketPdfService>();
         services.AddSingleton<IPdfPrintService, PdfPrintService>();
         services.AddSingleton<IBackupService, BackupService>();
         services.AddSingleton<IPeriodicBackupService, PeriodicBackupService>();

@@ -29,6 +29,7 @@ public partial class AvoirFournisseurEditViewModel : BaseViewModel
     private readonly ILocaleService _locale;
     private readonly IUiPreferencesService _uiPreferences;
     private readonly IPdfService _pdf;
+    private readonly ITicketPdfService _ticketPdf;
     private readonly IPdfPrintService _pdfPrint;
     private readonly IAppSettingsService _settings;
     private readonly IStockMovementService _stock;
@@ -44,6 +45,7 @@ public partial class AvoirFournisseurEditViewModel : BaseViewModel
         ILocaleService locale,
         IUiPreferencesService uiPreferences,
         IPdfService pdf,
+        ITicketPdfService ticketPdf,
         IPdfPrintService pdfPrint,
         IAppSettingsService settings,
         IStockMovementService stock,
@@ -58,6 +60,7 @@ public partial class AvoirFournisseurEditViewModel : BaseViewModel
         _locale = locale;
         _uiPreferences = uiPreferences;
         _pdf = pdf;
+        _ticketPdf = ticketPdf;
         _pdfPrint = pdfPrint;
         _settings = settings;
         _stock = stock;
@@ -523,9 +526,7 @@ public partial class AvoirFournisseurEditViewModel : BaseViewModel
         try
         {
             IsBusy = true;
-            var bytes = await BuildAvoirFournisseurPdfBytesAsync(cancellationToken);
-            if (bytes == null) return;
-            await _pdfPrint.PrintPdfAsync(bytes, Numero, cancellationToken);
+            await _pdfPrint.PrintPdfAsync(BuildAvoirFournisseurPdfForPrintAsync, Numero, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -536,6 +537,23 @@ public partial class AvoirFournisseurEditViewModel : BaseViewModel
         {
             IsBusy = false;
         }
+    }
+
+    private async Task<byte[]> BuildAvoirFournisseurPdfForPrintAsync(PrintPaperFormat format, CancellationToken cancellationToken)
+    {
+        if (AvoirFournisseurId is not { } id)
+            throw new InvalidOperationException("Document introuvable.");
+        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+        var a = await db.AvoirsFournisseurs.Include(x => x.Lignes).FirstAsync(x => x.Id == id, cancellationToken);
+        var fournisseur = await db.Tiers.AsNoTracking().FirstAsync(t => t.Id == a.FournisseurId, cancellationToken);
+        var party = DocumentPartyPdfInfo.FromTiers(fournisseur);
+        return format switch
+        {
+            PrintPaperFormat.A4 => await _pdf.BuildAvoirFournisseurPdfAsync(a, party, cancellationToken),
+            PrintPaperFormat.Ticket80mm => await _ticketPdf.BuildAvoirFournisseurTicketAsync(a, party, 80f, cancellationToken),
+            PrintPaperFormat.Ticket58mm => await _ticketPdf.BuildAvoirFournisseurTicketAsync(a, party, 58f, cancellationToken),
+            _ => throw new ArgumentOutOfRangeException(nameof(format), format, null)
+        };
     }
 
     private async Task<byte[]?> BuildAvoirFournisseurPdfBytesAsync(CancellationToken cancellationToken)
