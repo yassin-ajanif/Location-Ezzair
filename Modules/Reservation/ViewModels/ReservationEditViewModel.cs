@@ -270,7 +270,7 @@ public partial class ReservationEditViewModel : BaseViewModel
         LblDocColQteService = _locale.T("Loc_ColQteVendu");
         LblDocColQteRetour = _locale.T("Loc_ColQteRetour");
         LblDocColDays = _locale.T("DocLine_ColDays");
-        LblDocColPuHt = _locale.T("DocLine_ColPuHt");
+        LblDocColPuHt = _locale.T("DocLine_ColPuTtc");
         LblDocColRemise = _locale.T("DocLine_ColRemise");
         LblDocColTva = _locale.T("DocLine_ColTva");
         LblDocColMontantHt = _locale.T("DocLine_ColMontantHt");

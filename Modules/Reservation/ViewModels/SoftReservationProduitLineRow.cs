@@ -26,6 +26,19 @@ public partial class SoftReservationProduitLineRow : ObservableObject
 
     public decimal MontantTtc => MontantHt * (1 + TauxTva / 100m);
 
+    public decimal PrixUnitaireTtc
+    {
+        get => DocumentTotalsHelper.PrixUnitaireTtc(PrixUnitaireHt, TauxTva);
+        set
+        {
+            var ht = DocumentTotalsHelper.PrixUnitaireHtFromTtc(value, TauxTva);
+            if (PrixUnitaireHt == ht)
+                OnPropertyChanged(nameof(PrixUnitaireTtc));
+            else
+                PrixUnitaireHt = ht;
+        }
+    }
+
     public IBrush QteBackground => GoldBg;
     public IBrush QteBorder => GoldBorder;
     public IBrush QteForeground => GoldFg;
@@ -69,5 +82,6 @@ public partial class SoftReservationProduitLineRow : ObservableObject
     {
         OnPropertyChanged(nameof(MontantHt));
         OnPropertyChanged(nameof(MontantTtc));
+        OnPropertyChanged(nameof(PrixUnitaireTtc));
     }
 }

@@ -212,7 +212,7 @@
                                    IsVisible="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ShowDays}"/>
                     <TextBox Grid.Column="4" Text="{Binding Conditionnement}" Watermark="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).WmDocLineUnite}" Padding="6,4" Margin="0,0,8,0"
                              IsReadOnly="{Binding !$parent[UserControl].((vm:FactureEditViewModel)DataContext).CanEditDraft}" IsVisible="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ShowConditionnement}"/>
-                    <NumericUpDown Grid.Column="5" ShowButtonSpinner="False" Value="{Binding PrixUnitaireHt}" FormatString="0.##" Minimum="0" Increment="0.01"
+                    <NumericUpDown Grid.Column="5" ShowButtonSpinner="False" Value="{Binding PrixUnitaireTtc}" FormatString="0.##" Minimum="0" Increment="0.01"
                                    HorizontalAlignment="Stretch" Margin="0,0,8,0" IsEnabled="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).CanEditDraft}" IsVisible="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ShowPuHt}"/>
                     <NumericUpDown Grid.Column="6" ShowButtonSpinner="False" Value="{Binding Remise}" FormatString="N2" Minimum="0" Maximum="100" Increment="1"
                                    HorizontalAlignment="Stretch" Margin="0,0,8,0" IsEnabled="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).CanEditDraft}" IsVisible="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ShowRemise}"/>

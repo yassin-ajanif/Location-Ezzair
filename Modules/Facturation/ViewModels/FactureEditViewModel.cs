@@ -213,7 +213,7 @@ public partial class FactureEditViewModel : BaseViewModel
         LblDocColDays = _locale.T("DocLine_ColDays");
         LblDocColCond = _locale.T("DocLine_ColCond");
         WmDocLineUnite = _locale.T("DocLine_WmUnite");
-        LblDocColPuHt = _locale.T("DocLine_ColPuHt");
+        LblDocColPuHt = _locale.T("DocLine_ColPuTtc");
         LblDocColRemise = _locale.T("DocLine_ColRemise");
         LblDocColTva = _locale.T("DocLine_ColTva");
         LblDocColMontantHt = _locale.T("DocLine_ColMontantHt");

@@ -193,7 +193,7 @@
                     <NumericUpDown Grid.Column="3" Value="{Binding Days}" Minimum="1" FormatString="0"
                                    VerticalAlignment="Center" Margin="0,0,8,0"
                                    IsEnabled="False" ShowButtonSpinner="False"/>
-                    <NumericUpDown Grid.Column="4" Value="{Binding PrixUnitaireHt}" Minimum="0" FormatString="N2"
+                    <NumericUpDown Grid.Column="4" Value="{Binding PrixUnitaireTtc}" Minimum="0" FormatString="N2"
                                    VerticalAlignment="Center" Margin="0,0,8,0"
                                    IsEnabled="{Binding #ThisView.((vm:SoftReservationEditViewModel)DataContext).IsEditable}"/>
                     <NumericUpDown Grid.Column="5" Value="{Binding Remise}" Minimum="0" Maximum="100" FormatString="N2"
@@ -244,7 +244,7 @@
                     <NumericUpDown Grid.Column="2" Value="{Binding Quantite}" Minimum="0" FormatString="N2"
                                    VerticalAlignment="Center" Margin="0,0,8,0"
                                    IsEnabled="{Binding #ThisView.((vm:SoftReservationEditViewModel)DataContext).IsEditable}"/>
-                    <NumericUpDown Grid.Column="3" Value="{Binding PrixUnitaireHt}" Minimum="0" FormatString="N2"
+                    <NumericUpDown Grid.Column="3" Value="{Binding PrixUnitaireTtc}" Minimum="0" FormatString="N2"
                                    VerticalAlignment="Center" Margin="0,0,8,0"
                                    IsEnabled="{Binding #ThisView.((vm:SoftReservationEditViewModel)DataContext).IsEditable}"/>
                     <NumericUpDown Grid.Column="4" Value="{Binding Remise}" Minimum="0" Maximum="100" FormatString="N2"
