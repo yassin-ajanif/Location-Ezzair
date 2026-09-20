@@ -100,7 +100,7 @@
           <StackPanel Orientation="Horizontal" Spacing="24">
             <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
               <TextBlock Text="{Binding LblDateDebut}" Opacity="0.7" VerticalAlignment="Center"/>
-              <CalendarDatePicker SelectedDate="{Binding DateDebut}"
+              <CalendarDatePicker SelectedDate="{Binding DateDebut, Mode=TwoWay}"
                                   SelectedDateFormat="Custom"
                                   CustomDateFormatString="dd/MM/yyyy"
                                   Watermark="jj/mm/aaaa"
@@ -109,7 +109,8 @@
             </StackPanel>
             <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
               <TextBlock Text="{Binding LblDateFin}" Opacity="0.7" VerticalAlignment="Center"/>
-              <CalendarDatePicker SelectedDate="{Binding DateFinPrevue}"
+              <CalendarDatePicker SelectedDate="{Binding DateFinPrevue, Mode=TwoWay}"
+                                  DisplayDateStart="{Binding DateDebut}"
                                   SelectedDateFormat="Custom"
                                   CustomDateFormatString="dd/MM/yyyy"
                                   Watermark="jj/mm/aaaa"
@@ -191,7 +192,7 @@
                                    IsEnabled="{Binding #ThisView.((vm:SoftReservationEditViewModel)DataContext).IsEditable}"/>
                     <NumericUpDown Grid.Column="3" Value="{Binding Days}" Minimum="1" FormatString="0"
                                    VerticalAlignment="Center" Margin="0,0,8,0"
-                                   IsEnabled="{Binding RentedByDay}"/>
+                                   IsEnabled="False" ShowButtonSpinner="False"/>
                     <NumericUpDown Grid.Column="4" Value="{Binding PrixUnitaireHt}" Minimum="0" FormatString="N2"
                                    VerticalAlignment="Center" Margin="0,0,8,0"
                                    IsEnabled="{Binding #ThisView.((vm:SoftReservationEditViewModel)DataContext).IsEditable}"/>

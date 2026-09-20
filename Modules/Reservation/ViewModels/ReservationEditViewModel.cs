@@ -573,9 +573,43 @@ public partial class ReservationEditViewModel : BaseViewModel
 
     partial void OnDeviseChanged(string value) => RefreshTotals();
 
-    partial void OnDateDebutChanged(DateTime value) => SyncRentalDaysFromPeriod();
+    partial void OnDateDebutChanged(DateTime value)
+    {
+        EnsureFinNotBeforeDebut();
+        SyncRentalDaysFromPeriod();
+    }
 
-    partial void OnDateFinPrevueChanged(DateTime value) => SyncRentalDaysFromPeriod();
+    partial void OnDateFinPrevueChanged(DateTime value)
+    {
+        EnsureFinNotBeforeDebut();
+        SyncRentalDaysFromPeriod();
+    }
+
+    private bool _suppressPeriodClamp;
+
+    /// <summary>Fin prévue cannot be earlier than Début — snap Fin to Début (UI may lag the picker; post to refresh).</summary>
+    private void EnsureFinNotBeforeDebut()
+    {
+        if (_suppressPeriodClamp) return;
+        if (DateFinPrevue.Date >= DateDebut.Date) return;
+
+        // CalendarDatePicker can keep a stale SelectedDate until after the binding cycle.
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_suppressPeriodClamp) return;
+            if (DateFinPrevue.Date >= DateDebut.Date) return;
+            _suppressPeriodClamp = true;
+            try
+            {
+                DateFinPrevue = DateDebut.Date;
+            }
+            finally
+            {
+                _suppressPeriodClamp = false;
+            }
+            SyncRentalDaysFromPeriod();
+        }, DispatcherPriority.Input);
+    }
 
     private void SyncRentalDaysFromPeriod()
     {

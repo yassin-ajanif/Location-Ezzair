@@ -3,6 +3,7 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GestionCommerciale.Modules.Auth.Services;
@@ -470,9 +471,42 @@ public partial class SoftReservationEditViewModel : BaseViewModel
 
     partial void OnDeviseChanged(string value) => RefreshTotals();
 
-    partial void OnDateDebutChanged(DateTime value) => SyncRentalDaysFromPeriod();
+    partial void OnDateDebutChanged(DateTime value)
+    {
+        EnsureFinNotBeforeDebut();
+        SyncRentalDaysFromPeriod();
+    }
 
-    partial void OnDateFinPrevueChanged(DateTime value) => SyncRentalDaysFromPeriod();
+    partial void OnDateFinPrevueChanged(DateTime value)
+    {
+        EnsureFinNotBeforeDebut();
+        SyncRentalDaysFromPeriod();
+    }
+
+    private bool _suppressPeriodClamp;
+
+    /// <summary>Fin prévue cannot be earlier than Début — snap Fin to Début (UI may lag the picker; post to refresh).</summary>
+    private void EnsureFinNotBeforeDebut()
+    {
+        if (_suppressPeriodClamp) return;
+        if (DateFinPrevue.Date >= DateDebut.Date) return;
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_suppressPeriodClamp) return;
+            if (DateFinPrevue.Date >= DateDebut.Date) return;
+            _suppressPeriodClamp = true;
+            try
+            {
+                DateFinPrevue = DateDebut.Date;
+            }
+            finally
+            {
+                _suppressPeriodClamp = false;
+            }
+            SyncRentalDaysFromPeriod();
+        }, DispatcherPriority.Input);
+    }
 
     private void SyncRentalDaysFromPeriod()
     {

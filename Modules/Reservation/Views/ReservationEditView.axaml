@@ -88,7 +88,7 @@
           <StackPanel Orientation="Horizontal" Spacing="24">
             <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
               <TextBlock Text="{Binding LblDateDebut}" Opacity="0.7" VerticalAlignment="Center"/>
-              <CalendarDatePicker SelectedDate="{Binding DateDebut}"
+              <CalendarDatePicker SelectedDate="{Binding DateDebut, Mode=TwoWay}"
                                   SelectedDateFormat="Custom"
                                   CustomDateFormatString="dd/MM/yyyy"
                                   Watermark="jj/mm/aaaa"
@@ -96,7 +96,8 @@
             </StackPanel>
             <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
               <TextBlock Text="{Binding LblDateFin}" Opacity="0.7" VerticalAlignment="Center"/>
-              <CalendarDatePicker SelectedDate="{Binding DateFinPrevue}"
+              <CalendarDatePicker SelectedDate="{Binding DateFinPrevue, Mode=TwoWay}"
+                                  DisplayDateStart="{Binding DateDebut}"
                                   SelectedDateFormat="Custom"
                                   CustomDateFormatString="dd/MM/yyyy"
                                   Watermark="jj/mm/aaaa"
@@ -191,7 +192,7 @@
                     </Border>
                     <NumericUpDown Grid.Column="4" Value="{Binding Days}" Minimum="1" FormatString="0"
                                    VerticalAlignment="Center" Margin="0,0,8,0"
-                                   IsEnabled="{Binding RentedByDay}"/>
+                                   IsEnabled="False" ShowButtonSpinner="False"/>
                     <NumericUpDown Grid.Column="5" Value="{Binding PrixUnitaireHt}" Minimum="0" FormatString="N2"
                                    VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <NumericUpDown Grid.Column="6" Value="{Binding Remise}" Minimum="0" Maximum="100" FormatString="N2"

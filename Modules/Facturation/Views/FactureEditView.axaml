@@ -208,7 +208,7 @@
                                    HorizontalAlignment="Stretch" Margin="0,0,8,0" IsEnabled="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).CanEditDraft}" IsVisible="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ShowQuantite}"/>
                     <NumericUpDown Grid.Column="3" ShowButtonSpinner="False" Value="{Binding Days}" FormatString="0" Minimum="1" Increment="1"
                                    HorizontalAlignment="Stretch" Margin="0,0,8,0"
-                                   IsEnabled="{Binding RentedByDay}"
+                                   IsEnabled="False"
                                    IsVisible="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ShowDays}"/>
                     <TextBox Grid.Column="4" Text="{Binding Conditionnement}" Watermark="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).WmDocLineUnite}" Padding="6,4" Margin="0,0,8,0"
                              IsReadOnly="{Binding !$parent[UserControl].((vm:FactureEditViewModel)DataContext).CanEditDraft}" IsVisible="{Binding $parent[UserControl].((vm:FactureEditViewModel)DataContext).LineGridColumns.ShowConditionnement}"/>
