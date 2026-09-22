@@ -58,6 +58,8 @@ public static class CommercialDocumentPdfRenderer
                 page.MarginHorizontal(40);
                 page.MarginTop(28);
                 page.MarginBottom(32);
+                // Commercial PDFs use French/LTR labels; Arabic UI must not BiDi-scramble dates/numbers.
+                page.ContentFromLeftToRight();
                 page.DefaultTextStyle(x => x.FontSize(9.5f).FontColor(TextPrimary));
 
                 page.Content().Column(main =>

@@ -34,6 +34,8 @@ public static class TicketPdfRenderer
                 page.ContinuousSize(model.WidthMm, Unit.Millimetre);
                 page.MarginHorizontal(4);
                 page.MarginVertical(6);
+                // Tickets are French/LTR layouts; Arabic UI culture must not reverse digit runs in dates.
+                page.ContentFromLeftToRight();
                 // Bold by default: thermal printers wash out regular weight.
                 page.DefaultTextStyle(x => x.FontSize(bodySize).FontColor(Colors.Black).Bold());
 
@@ -44,10 +46,10 @@ public static class TicketPdfRenderer
                     col.Item().PaddingTop(4).AlignCenter().Text(dash).FontSize(7);
                     col.Item().PaddingTop(4).AlignCenter()
                         .Text(model.DocumentKindLabel).Bold().FontSize(titleSize);
-                    col.Item().PaddingTop(6).Text($"N° : {model.Numero}").Bold().FontSize(bodySize);
-                    col.Item().Text($"Date : {model.DateText}").Bold().FontSize(bodySize);
+                    col.Item().PaddingTop(6).Text($"N° : {AsLtr(model.Numero)}").Bold().FontSize(bodySize);
+                    col.Item().Text($"Date : {AsLtr(model.DateText)}").Bold().FontSize(bodySize);
                     if (!string.IsNullOrWhiteSpace(model.ExtraInfoLabel) && !string.IsNullOrWhiteSpace(model.ExtraInfoValue))
-                        col.Item().Text($"{model.ExtraInfoLabel} : {model.ExtraInfoValue}").Bold().FontSize(bodySize);
+                        col.Item().Text($"{model.ExtraInfoLabel} : {AsLtr(model.ExtraInfoValue)}").Bold().FontSize(bodySize);
                     col.Item().Text($"{model.PartyLabel} : {model.PartyName}").Bold().FontSize(bodySize);
                     col.Item().PaddingTop(6);
 
@@ -170,4 +172,8 @@ public static class TicketPdfRenderer
 
     private static string FmtQty(decimal value) => value.ToString("0.###", Fr);
     private static string FmtMoney(decimal value) => value.ToString("N2", Fr);
+
+    /// <summary>Unicode LRI…PDI — keeps digit/date runs LTR even if ambient culture is Arabic.</summary>
+    private static string AsLtr(string value) =>
+        string.IsNullOrEmpty(value) ? value : $"\u2066{value}\u2069";
 }

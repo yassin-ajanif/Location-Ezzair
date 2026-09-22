@@ -1,3 +1,4 @@
+using System.Globalization;
 using GestionCommerciale.Modules.AvoirFournisseur.Models;
 using GestionCommerciale.Modules.CommandeFournisseur.Models;
 using GestionCommerciale.Modules.Facturation.Models;
@@ -76,11 +77,19 @@ public sealed class TicketPdfService : ITicketPdfService
             .Concat(doc.ServiceLignes.Select(l =>
                 LineTtc(l.Designation, l.Quantite, l.PrixUnitaireHT, l.Remise, l.TauxTVA)))
             .ToList();
-        var periode = $"{doc.DateDebut:dd/MM/yyyy} → {doc.DateFinPrevue:dd/MM/yyyy}";
+        var periode =
+            $"{FmtDate(doc.DateDebut)} → {FmtDate(doc.DateFinPrevue)}";
         return Render(cfg, "BON DE SORTIE", doc.Numero, "Client", party.Nom, lines, totals.ttc, widthMm,
             extraLabel: "Période",
             extraValue: periode);
     }
+
+    /// <summary>Always LTR numeric dates — Arabic UI culture must not BiDi-scramble tickets.</summary>
+    private static string FmtDate(DateTime value) =>
+        value.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
+
+    private static string FmtDateTime(DateTime value) =>
+        value.ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
 
     private static TicketLinePdfModel LineTtc(
         string designation,
@@ -126,7 +135,7 @@ public sealed class TicketPdfService : ITicketPdfService
             LogoBytes = TryLoadLogoBytes(cfg.SocieteLogoPath),
             DocumentKindLabel = kind,
             Numero = numero,
-            DateText = DateTime.Now.ToString("dd/MM/yyyy HH:mm"),
+            DateText = FmtDateTime(DateTime.Now),
             ExtraInfoLabel = extraLabel,
             ExtraInfoValue = extraValue,
             PartyLabel = partyLabel,

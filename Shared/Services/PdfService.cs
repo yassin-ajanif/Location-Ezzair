@@ -43,6 +43,8 @@ public sealed class PdfService : IPdfService
 
     private static string FmtMoney(decimal value) => value.ToString("N2", PdfCulture);
 
+    private static string FmtDate(DateTime value) => value.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
+
     public async Task<byte[]> BuildBonReceptionPdfAsync(BonReception br, DocumentPartyPdfInfo party, CancellationToken cancellationToken = default)
     {
         var cfg = await _settings.GetAsync(cancellationToken);
@@ -71,7 +73,7 @@ public sealed class PdfService : IPdfService
         var docLines = new List<PdfKeyValueLine>
         {
             new("N°", br.Numero),
-            new("Date", br.Date.ToString("dd/MM/yyyy"))
+            new("Date", FmtDate(br.Date))
         };
 
         var model = BaseModel(cfg, "BON DE RÉCEPTION", docLines, PartyLines(party, "Fournisseur"), cols, rows, totals, br.Note, vis.ShowMontantTtc);
@@ -108,7 +110,7 @@ public sealed class PdfService : IPdfService
         var docLines = new List<PdfKeyValueLine>
         {
             new("N°", bc.Numero),
-            new("Date", bc.Date.ToString("dd/MM/yyyy"))
+            new("Date", FmtDate(bc.Date))
         };
 
         var model = BaseModel(cfg, "BON DE COMMANDE", docLines, PartyLines(party, "Fournisseur"), cols, rows, (ht, tva, ht + tva), bc.Note, vis.ShowMontantTtc);
@@ -164,12 +166,12 @@ public sealed class PdfService : IPdfService
         var docLines = new List<PdfKeyValueLine>
         {
             new("N°", doc.Numero),
-            new("Date", doc.Date.ToString("dd/MM/yyyy")),
-            new("Début", doc.DateDebut.ToString("dd/MM/yyyy")),
-            new("Fin prévue", doc.DateFinPrevue.ToString("dd/MM/yyyy"))
+            new("Date", FmtDate(doc.Date)),
+            new("Début", FmtDate(doc.DateDebut)),
+            new("Fin prévue", FmtDate(doc.DateFinPrevue))
         };
         if (doc.DateRetourEffective is { } retour)
-            docLines.Add(new("Retour", retour.ToString("dd/MM/yyyy")));
+            docLines.Add(new("Retour", FmtDate(retour)));
         if (doc.Caution > 0)
             docLines.Add(new("Caution", FmtMoney(doc.Caution)));
         if (doc.RemiseGlobale > 0)
@@ -213,8 +215,8 @@ public sealed class PdfService : IPdfService
         var docLines = new List<PdfKeyValueLine>
         {
             new("N°", facture.Numero),
-            new("Date", facture.Date.ToString("dd/MM/yyyy")),
-            new("Échéance", facture.DateEcheance.ToString("dd/MM/yyyy"))
+            new("Date", FmtDate(facture.Date)),
+            new("Échéance", FmtDate(facture.DateEcheance))
         };
 
         var bsNums = await GetLinkedBonSortieNumerosAsync(facture.Id, cancellationToken);
@@ -263,8 +265,8 @@ public sealed class PdfService : IPdfService
         var docLines = new List<PdfKeyValueLine>
         {
             new("N°", factureFournisseur.Numero),
-            new("Date", factureFournisseur.Date.ToString("dd/MM/yyyy")),
-            new("Échéance", factureFournisseur.DateEcheance.ToString("dd/MM/yyyy"))
+            new("Date", FmtDate(factureFournisseur.Date)),
+            new("Échéance", FmtDate(factureFournisseur.DateEcheance))
         };
 
         var brNums = await GetLinkedBrNumerosAsync(factureFournisseur.Id, cancellationToken);
@@ -352,7 +354,7 @@ public sealed class PdfService : IPdfService
         var docLines = new List<PdfKeyValueLine>
         {
             new("N°", doc.Numero),
-            new("Date", doc.Date.ToString("dd/MM/yyyy"))
+            new("Date", FmtDate(doc.Date))
         };
 
         var model = BaseModel(cfg, "AVOIR FOURNISSEUR", docLines, PartyLines(party, "Fournisseur"), cols, rows, totals, note, vis.ShowMontantTtc);
