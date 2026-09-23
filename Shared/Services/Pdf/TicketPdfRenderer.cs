@@ -48,9 +48,15 @@ public static class TicketPdfRenderer
                         .Text(model.DocumentKindLabel).Bold().FontSize(titleSize);
                     col.Item().PaddingTop(6).Text($"N° : {AsLtr(model.Numero)}").Bold().FontSize(bodySize);
                     col.Item().Text($"Date : {AsLtr(model.DateText)}").Bold().FontSize(bodySize);
-                    if (!string.IsNullOrWhiteSpace(model.ExtraInfoLabel) && !string.IsNullOrWhiteSpace(model.ExtraInfoValue))
-                        col.Item().Text($"{model.ExtraInfoLabel} : {AsLtr(model.ExtraInfoValue)}").Bold().FontSize(bodySize);
+                    foreach (var extra in model.HeaderExtras)
+                    {
+                        if (string.IsNullOrWhiteSpace(extra.Label) || string.IsNullOrWhiteSpace(extra.Value))
+                            continue;
+                        col.Item().Text($"{extra.Label} : {AsLtr(extra.Value)}").Bold().FontSize(bodySize);
+                    }
                     col.Item().Text($"{model.PartyLabel} : {model.PartyName}").Bold().FontSize(bodySize);
+                    if (!string.IsNullOrWhiteSpace(model.StatusText))
+                        col.Item().Text($"Statut : {model.StatusText}").Bold().FontSize(bodySize);
                     col.Item().PaddingTop(6);
 
                     DrawLinesTable(col, model);

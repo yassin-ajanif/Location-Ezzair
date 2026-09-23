@@ -8,6 +8,12 @@ public sealed class TicketLinePdfModel
     public required decimal Montant { get; init; }
 }
 
+public sealed class TicketHeaderExtra
+{
+    public required string Label { get; init; }
+    public required string Value { get; init; }
+}
+
 public sealed class TicketDocumentPdfModel
 {
     public string CompanyName { get; init; } = string.Empty;
@@ -16,10 +22,12 @@ public sealed class TicketDocumentPdfModel
     public required string DocumentKindLabel { get; init; }
     public required string Numero { get; init; }
     public required string DateText { get; init; }
-    public string? ExtraInfoLabel { get; init; }
-    public string? ExtraInfoValue { get; init; }
+    /// <summary>Optional header lines (e.g. Période, Bon de sortie) drawn after Date.</summary>
+    public IReadOnlyList<TicketHeaderExtra> HeaderExtras { get; init; } = Array.Empty<TicketHeaderExtra>();
     public required string PartyLabel { get; init; }
     public required string PartyName { get; init; }
+    /// <summary>Optional payment status (e.g. Payée / Non payée) for facture tickets.</summary>
+    public string? StatusText { get; init; }
     public IReadOnlyList<TicketLinePdfModel> Lines { get; init; } = Array.Empty<TicketLinePdfModel>();
     public required decimal Total { get; init; }
     public required string Devise { get; init; }

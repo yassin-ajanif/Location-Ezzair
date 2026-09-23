@@ -9,6 +9,7 @@ using GestionCommerciale.Shared.Database;
 using GestionCommerciale.Shared.Helpers;
 using GestionCommerciale.Shared.Models.Pdf;
 using GestionCommerciale.Shared.Services.Pdf;
+using Microsoft.EntityFrameworkCore;
 using QuestPDF.Infrastructure;
 
 namespace GestionCommerciale.Shared.Services;
@@ -16,10 +17,12 @@ namespace GestionCommerciale.Shared.Services;
 public sealed class TicketPdfService : ITicketPdfService
 {
     private readonly IAppSettingsService _settings;
+    private readonly IDbContextFactory<AppDbContext> _dbFactory;
 
-    public TicketPdfService(IAppSettingsService settings)
+    public TicketPdfService(IAppSettingsService settings, IDbContextFactory<AppDbContext> dbFactory)
     {
         _settings = settings;
+        _dbFactory = dbFactory;
         QuestPDF.Settings.License = LicenseType.Community;
     }
 
@@ -47,7 +50,28 @@ public sealed class TicketPdfService : ITicketPdfService
         var totals = DocumentTotalsHelper.FactureTotals(facture.Lignes, facture.RemiseGlobale);
         var lines = facture.Lignes.Select(l =>
             LineTtc(l.Designation, l.Quantite, l.PrixUnitaireHT, l.Remise, l.TauxTVA, l.RentedByDay, l.Days)).ToList();
-        return Render(cfg, "FACTURE", facture.Numero, "Client", party.Nom, lines, totals.ttc, widthMm);
+
+        var extras = new List<TicketHeaderExtra>();
+        var linked = await LoadLinkedBonSortiesAsync(facture, cancellationToken);
+        if (linked.Count > 0)
+        {
+            extras.Add(new TicketHeaderExtra
+            {
+                Label = "Bon de sortie",
+                Value = string.Join(", ", linked.Select(b => b.Numero))
+            });
+            var debut = linked.Min(b => b.DateDebut);
+            var fin = linked.Max(b => b.DateFinPrevue);
+            extras.Add(new TicketHeaderExtra
+            {
+                Label = "Période",
+                Value = $"{FmtDate(debut)} → {FmtDate(fin)}"
+            });
+        }
+
+        return Render(cfg, "FACTURE", facture.Numero, "Client", party.Nom, lines, totals.ttc, widthMm,
+            headerExtras: extras,
+            statusText: facture.EstPayee ? "Payée" : "Non payée");
     }
 
     public async Task<byte[]> BuildFactureFournisseurTicketAsync(FactureFournisseur factureFournisseur, DocumentPartyPdfInfo party, float widthMm, CancellationToken cancellationToken = default)
@@ -56,7 +80,8 @@ public sealed class TicketPdfService : ITicketPdfService
         var totals = DocumentTotalsHelper.FactureFournisseurTotals(factureFournisseur.Lignes, factureFournisseur.RemiseGlobale);
         var lines = factureFournisseur.Lignes.Select(l =>
             LineTtc(l.Designation, l.Quantite, l.PrixUnitaireHT, l.Remise, l.TauxTVA)).ToList();
-        return Render(cfg, "FACTURE FOURNISSEUR", factureFournisseur.Numero, "Fournisseur", party.Nom, lines, totals.ttc, widthMm);
+        return Render(cfg, "FACTURE FOURNISSEUR", factureFournisseur.Numero, "Fournisseur", party.Nom, lines, totals.ttc, widthMm,
+            statusText: factureFournisseur.EstPayee ? "Payée" : "Non payée");
     }
 
     public async Task<byte[]> BuildAvoirFournisseurTicketAsync(AvoirFournisseur doc, DocumentPartyPdfInfo party, float widthMm, CancellationToken cancellationToken = default)
@@ -77,11 +102,50 @@ public sealed class TicketPdfService : ITicketPdfService
             .Concat(doc.ServiceLignes.Select(l =>
                 LineTtc(l.Designation, l.Quantite, l.PrixUnitaireHT, l.Remise, l.TauxTVA)))
             .ToList();
-        var periode =
-            $"{FmtDate(doc.DateDebut)} → {FmtDate(doc.DateFinPrevue)}";
+        var extras = new[]
+        {
+            new TicketHeaderExtra
+            {
+                Label = "Période",
+                Value = $"{FmtDate(doc.DateDebut)} → {FmtDate(doc.DateFinPrevue)}"
+            }
+        };
         return Render(cfg, "BON DE SORTIE", doc.Numero, "Client", party.Nom, lines, totals.ttc, widthMm,
-            extraLabel: "Période",
-            extraValue: periode);
+            headerExtras: extras);
+    }
+
+    /// <summary>Linked BS via FactureId, else via line BonSortieId snapshots.</summary>
+    private async Task<IReadOnlyList<(string Numero, DateTime DateDebut, DateTime DateFinPrevue)>> LoadLinkedBonSortiesAsync(
+        Facture facture,
+        CancellationToken cancellationToken)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+
+        if (facture.Id > 0)
+        {
+            var byFacture = await db.BonsSortie.AsNoTracking()
+                .Where(b => b.FactureId == facture.Id)
+                .OrderBy(b => b.Date).ThenBy(b => b.Numero)
+                .Select(b => new { b.Numero, b.DateDebut, b.DateFinPrevue })
+                .ToListAsync(cancellationToken);
+            if (byFacture.Count > 0)
+                return byFacture.Select(b => (b.Numero, b.DateDebut, b.DateFinPrevue)).ToList();
+        }
+
+        var lineIds = facture.Lignes
+            .Where(l => l.BonSortieId is > 0)
+            .Select(l => l.BonSortieId!.Value)
+            .Distinct()
+            .ToList();
+        if (lineIds.Count == 0)
+            return Array.Empty<(string, DateTime, DateTime)>();
+
+        var byLines = await db.BonsSortie.AsNoTracking()
+            .Where(b => lineIds.Contains(b.Id))
+            .OrderBy(b => b.Date).ThenBy(b => b.Numero)
+            .Select(b => new { b.Numero, b.DateDebut, b.DateFinPrevue })
+            .ToListAsync(cancellationToken);
+        return byLines.Select(b => (b.Numero, b.DateDebut, b.DateFinPrevue)).ToList();
     }
 
     /// <summary>Always LTR numeric dates — Arabic UI culture must not BiDi-scramble tickets.</summary>
@@ -121,8 +185,8 @@ public sealed class TicketPdfService : ITicketPdfService
         IReadOnlyList<TicketLinePdfModel> lines,
         decimal total,
         float widthMm,
-        string? extraLabel = null,
-        string? extraValue = null)
+        IReadOnlyList<TicketHeaderExtra>? headerExtras = null,
+        string? statusText = null)
     {
         if (widthMm is not (58f or 80f))
             throw new ArgumentOutOfRangeException(nameof(widthMm), "Ticket width must be 58 or 80 mm.");
@@ -136,10 +200,10 @@ public sealed class TicketPdfService : ITicketPdfService
             DocumentKindLabel = kind,
             Numero = numero,
             DateText = FmtDateTime(DateTime.Now),
-            ExtraInfoLabel = extraLabel,
-            ExtraInfoValue = extraValue,
+            HeaderExtras = headerExtras ?? Array.Empty<TicketHeaderExtra>(),
             PartyLabel = partyLabel,
             PartyName = string.IsNullOrWhiteSpace(partyName) ? "—" : partyName,
+            StatusText = statusText,
             Lines = lines,
             Total = total,
             Devise = devise,
